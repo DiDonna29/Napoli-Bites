@@ -4,17 +4,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, Download, ShoppingBag, User } from "lucide-react";
+import { CheckCircle, Download, ShoppingBag } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation"; // Imported useParams
 import { Suspense, useEffect, useState } from "react";
 
+// This interface defines the props for the Server Component (default export)
 interface ConfirmationPageProps {
   params: { orderId: string };
 }
 
-function ConfirmationPageContent({ params }: ConfirmationPageProps) {
-  const { orderId } = params;
+// ConfirmationPageContent is a Client Component and will get its params via hooks
+function ConfirmationPageContent() {
+  const routeParams = useParams<{ orderId: string }>(); // Use hook to get params
+  const orderId = routeParams.orderId; // Access orderId
+
   const searchParams = useSearchParams();
   const totalAmount = searchParams.get('total') || '0.00';
   const orderType = searchParams.get('orderType') || 'N/A';
@@ -105,10 +109,12 @@ function ConfirmationPageContent({ params }: ConfirmationPageProps) {
   );
 }
 
+// This default export is a Server Component that receives `params` from Next.js
 export default function ConfirmationPage(props: ConfirmationPageProps) {
  return (
+    // ConfirmationPageContent is a Client Component and will get its params via hooks
     <Suspense fallback={<div className="container mx-auto py-12 text-center">Loading confirmation...</div>}>
-      <ConfirmationPageContent {...props} />
+      <ConfirmationPageContent />
     </Suspense>
   );
 }
