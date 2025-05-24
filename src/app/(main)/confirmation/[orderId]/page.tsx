@@ -4,41 +4,94 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, Download, ShoppingBag } from "lucide-react";
+import { CheckCircle, Download, ShoppingBag, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams, useParams } from "next/navigation"; // Imported useParams
+import { useSearchParams, useParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { db } from "@/lib/firebase/config";
+import { doc, getDoc } from "firebase/firestore";
+import type { Order, OrderItem, UserProfile } from "@/types"; // Added UserProfile
 
-// This interface defines the props for the Server Component (default export)
 interface ConfirmationPageProps {
   params: { orderId: string };
 }
 
-// ConfirmationPageContent is a Client Component and will get its params via hooks
 function ConfirmationPageContent() {
-  const routeParams = useParams<{ orderId: string }>(); // Use hook to get params
-  const orderId = routeParams.orderId; // Access orderId
+  const routeParams = useParams<{ orderId: string }>();
+  const orderId = routeParams.orderId;
 
   const searchParams = useSearchParams();
-  const totalAmount = searchParams.get('total') || '0.00';
-  const orderType = searchParams.get('orderType') || 'N/A';
-  
+  const totalAmountParam = searchParams.get('total');
+  const orderTypeParam = searchParams.get('orderType');
+
+  const { user: authUser, userData: authUserData, loading: authLoading } = useAuth();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [customer, setCustomer] = useState<UserProfile | null>(null);
+  const [loadingOrder, setLoadingOrder] = useState(true);
   const [currentDate, setCurrentDate] = useState('');
 
   useEffect(() => {
     setCurrentDate(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
-  }, []);
+
+    const fetchOrderDetails = async () => {
+      if (!orderId) return;
+      setLoadingOrder(true);
+      try {
+        const orderDocRef = doc(db, "orders", orderId);
+        const orderDocSnap = await getDoc(orderDocRef);
+
+        if (orderDocSnap.exists()) {
+          const fetchedOrder = orderDocSnap.data() as Order;
+          setOrder(fetchedOrder);
+
+          // Fetch customer details if not already available from auth context and order has userId
+          if (fetchedOrder.userId && (!authUserData || authUserData.uid !== fetchedOrder.userId)) {
+            const userDocRef = doc(db, "users", fetchedOrder.userId);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+              setCustomer(userDocSnap.data() as UserProfile);
+            }
+          } else if (authUserData) {
+            setCustomer(authUserData);
+          }
+        } else {
+          console.error("Order not found");
+          // Handle order not found (e.g., show error message or redirect)
+        }
+      } catch (error) {
+        console.error("Error fetching order details:", error);
+      } finally {
+        setLoadingOrder(false);
+      }
+    };
+
+    fetchOrderDetails();
+  }, [orderId, authUserData]);
+
+  const displayTotalAmount = totalAmountParam ? parseFloat(totalAmountParam).toFixed(2) : (order?.totalAmount?.toFixed(2) || '0.00');
+  const displayOrderType = orderTypeParam || order?.orderType || 'N/A';
+  const displayCustomerName = customer?.displayName || authUser?.displayName || "Valued Customer";
+  const displayCustomerEmail = customer?.email || authUser?.email || "customer@example.com";
 
 
-  // Mock user and order data
-  const mockUser = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-  };
-  const mockOrderItems = [
-    { name: "Pizza Margherita (Medium)", quantity: 1, price: 15.99 },
-    { name: "Coca-Cola", quantity: 2, price: 2.50 },
-  ];
+  if (authLoading || loadingOrder) {
+    return (
+      <div className="container mx-auto py-12 px-4 max-w-3xl text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+        <p>Loading confirmation details...</p>
+      </div>
+    );
+  }
+
+  if (!order && !loadingOrder) {
+     return (
+      <div className="container mx-auto py-12 px-4 max-w-3xl text-center">
+        <Card><CardContent className="p-8"><p className="text-xl text-destructive">Order not found.</p></CardContent></Card>
+      </div>
+    );
+  }
+
 
   return (
     <div className="container mx-auto py-12 px-4 max-w-3xl">
@@ -46,7 +99,7 @@ function ConfirmationPageContent() {
         <CardHeader className="text-center items-center">
           <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
           <CardTitle className="text-3xl font-lora text-primary">Order Confirmed!</CardTitle>
-          <CardDescription className="text-lg">Thank you for your order. Your delicious meal is being prepared.</CardDescription>
+          <CardDescription className="text-lg">Thank you for your order, {displayCustomerName}. Your delicious meal is being prepared.</CardDescription>
           <p className="text-sm text-muted-foreground pt-2">Order ID: {orderId}</p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -56,14 +109,14 @@ function ConfirmationPageContent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <h3 className="font-semibold text-muted-foreground">Billed To:</h3>
-                <p>{mockUser.name}</p>
-                <p>{mockUser.email}</p>
+                <p>{displayCustomerName}</p>
+                <p>{displayCustomerEmail}</p>
               </div>
               <div className="md:text-right">
                 <h3 className="font-semibold text-muted-foreground">Invoice Date:</h3>
                 <p>{currentDate}</p>
                 <h3 className="font-semibold text-muted-foreground mt-1">Order Type:</h3>
-                <p>{orderType.charAt(0).toUpperCase() + orderType.slice(1)}</p>
+                <p>{displayOrderType.charAt(0).toUpperCase() + displayOrderType.slice(1)}</p>
               </div>
             </div>
 
@@ -71,9 +124,9 @@ function ConfirmationPageContent() {
 
             <h3 className="font-semibold text-muted-foreground mb-2">Order Summary:</h3>
             <div className="space-y-1 text-sm mb-4">
-              {mockOrderItems.map(item => (
-                <div key={item.name} className="flex justify-between">
-                  <span>{item.name} x {item.quantity}</span>
+              {order?.items.map((item: OrderItem) => (
+                <div key={`${item.id}-${item.type}`} className="flex justify-between">
+                  <span>{item.name} (x{item.quantity})</span>
                   <span>${(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
@@ -83,13 +136,13 @@ function ConfirmationPageContent() {
             
             <div className="flex justify-between items-center font-bold text-lg mt-2">
               <span>Total Amount Paid:</span>
-              <span className="text-primary">${parseFloat(totalAmount).toFixed(2)}</span>
+              <span className="text-primary">${displayTotalAmount}</span>
             </div>
             <p className="text-xs text-muted-foreground text-right mt-1">(inclusive of all taxes)</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="outline" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => alert("PDF download feature coming soon!")}>
               <Download className="mr-2 h-4 w-4" /> Download Invoice (PDF)
             </Button>
             <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
@@ -109,11 +162,9 @@ function ConfirmationPageContent() {
   );
 }
 
-// This default export is a Server Component that receives `params` from Next.js
 export default function ConfirmationPage(props: ConfirmationPageProps) {
  return (
-    // ConfirmationPageContent is a Client Component and will get its params via hooks
-    <Suspense fallback={<div className="container mx-auto py-12 text-center">Loading confirmation...</div>}>
+    <Suspense fallback={<div className="container mx-auto py-12 px-4 max-w-3xl text-center"><Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" /></div>}>
       <ConfirmationPageContent />
     </Suspense>
   );

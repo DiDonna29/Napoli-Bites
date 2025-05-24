@@ -9,41 +9,92 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { PIZZAS_DATA, DRINKS_DATA } from "@/constants/menu";
-import type { Pizza, Drink } from "@/types";
+import type { Pizza, Drink, OrderItem } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, Suspense } from "react";
-import { useSearchParams } from 'next/navigation';
+import { useState, Suspense, useEffect } from "react";
+import { useSearchParams, useRouter } from 'next/navigation';
 import { ShoppingCart, Utensils, Bike, Package } from "lucide-react";
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  type: 'pizza' | 'drink';
-}
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 function OrderPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+
   const initialOrderType = searchParams.get('type') || 'delivery';
   const initialTableId = searchParams.get('table');
 
   const [orderType, setOrderType] = useState(initialOrderType);
   const [address, setAddress] = useState("");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<OrderItem[]>([]);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to place an order.",
+        variant: "destructive",
+      });
+      router.push(`/login?redirect=/order${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
+    }
+  }, [user, authLoading, router, toast, searchParams]);
 
   const addToCart = (item: Pizza | Drink, type: 'pizza' | 'drink') => {
     setCart(prevCart => {
-      const existingItem = prevCart.find(ci => ci.id === item.id);
+      const existingItem = prevCart.find(ci => ci.id === item.id && ci.type === type);
       if (existingItem) {
-        return prevCart.map(ci => ci.id === item.id ? { ...ci, quantity: ci.quantity + 1 } : ci);
+        return prevCart.map(ci => ci.id === item.id && ci.type === type ? { ...ci, quantity: ci.quantity + 1 } : ci);
       }
-      return [...prevCart, { id: item.id, name: item.name, price: type === 'pizza' ? item.basePrice : item.price, quantity: 1, type }];
+      const price = type === 'pizza' ? (item as Pizza).basePrice : (item as Drink).price;
+      return [...prevCart, { id: item.id, name: item.name, price, quantity: 1, type }];
     });
+     toast({ title: "Item Added", description: `${item.name} added to your order.` });
   };
 
   const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  const handleProceedToCheckout = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to proceed to checkout.",
+        variant: "destructive",
+      });
+      router.push('/login?redirect=/order');
+      return;
+    }
+    if (orderType === 'delivery' && !address.trim()) {
+      toast({
+        title: "Address Required",
+        description: "Please enter your delivery address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Save cart to localStorage to pass to checkout page
+    localStorage.setItem('napoliBitesCart', JSON.stringify(cart));
+    
+    const checkoutParams = new URLSearchParams();
+    checkoutParams.set('orderType', orderType);
+    checkoutParams.set('total', totalAmount.toFixed(2));
+    if (orderType === 'delivery' && address) checkoutParams.set('address', encodeURIComponent(address));
+    if (initialTableId) checkoutParams.set('tableId', initialTableId);
+    
+    router.push(`/checkout?${checkoutParams.toString()}`);
+  };
+  
+  if (authLoading) {
+    return <div className="container mx-auto py-12 px-4 text-center">Loading user authentication...</div>;
+  }
+  
+  if (!user && !authLoading) {
+     // This will be handled by useEffect redirect, but good for initial render before effect runs
+    return <div className="container mx-auto py-12 px-4 text-center">Redirecting to login...</div>;
+  }
+
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -109,7 +160,7 @@ function OrderPageContent() {
                 <Image src={pizza.imageUrl} alt={pizza.name} data-ai-hint={pizza.imageHint || "pizza food"} width={300} height={200} className="w-full h-40 object-cover rounded-t-md" />
                 <CardHeader className="flex-grow">
                   <CardTitle className="text-lg">{pizza.name}</CardTitle>
-                  <CardDescription className="text-xs">{pizza.description.substring(0,50)}...</CardDescription>
+                  <CardDescription className="text-xs h-10 overflow-hidden text-ellipsis">{pizza.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="py-2">
                   <p className="font-semibold">${pizza.basePrice.toFixed(2)}</p>
@@ -148,7 +199,7 @@ function OrderPageContent() {
           </CardHeader>
           <CardContent>
             {cart.map(item => (
-              <div key={item.id} className="flex justify-between items-center py-2 border-b">
+              <div key={`${item.id}-${item.type}`} className="flex justify-between items-center py-2 border-b">
                 <div>
                   <p className="font-medium">{item.name} (x{item.quantity})</p>
                   <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
@@ -162,10 +213,8 @@ function OrderPageContent() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
-              <Link href={`/checkout?orderType=${orderType}&total=${totalAmount.toFixed(2)}${orderType === 'delivery' && address ? `&address=${encodeURIComponent(address)}` : ''}${initialTableId ? `&tableId=${initialTableId}` : ''}`}>
+            <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleProceedToCheckout} disabled={!user || (orderType === 'dine-in' && !initialTableId && orderType !== 'pickup' && orderType !== 'delivery')}>
                 <ShoppingCart className="mr-2 h-5 w-5" /> Proceed to Checkout
-              </Link>
             </Button>
           </CardFooter>
         </Card>
@@ -174,10 +223,9 @@ function OrderPageContent() {
   );
 }
 
-
 export default function OrderPage() {
   return (
-    <Suspense fallback={<div>Loading order options...</div>}>
+    <Suspense fallback={<div className="container mx-auto py-12 px-4 text-center">Loading order options...</div>}>
       <OrderPageContent />
     </Suspense>
   );

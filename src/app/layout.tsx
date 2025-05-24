@@ -1,17 +1,16 @@
 import type {Metadata} from 'next';
-import { Inter, Lora } from 'next/font/google'; // Replaced Geist_Sans with Inter
+import { Inter, Lora } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from '@/context/AuthContext'; // Import AuthProvider
 
-// Instantiate Inter and assign its variable name to --font-geist-sans
-// This keeps globals.css compatible as it references --font-geist-sans.
 const sansFont = Inter({
-  variable: '--font-geist-sans', // CSS variable for the sans-serif font
+  variable: '--font-geist-sans', 
   subsets: ['latin'],
 });
 
 const loraFont = Lora({
-  variable: '--font-lora', // CSS variable for the serif font
+  variable: '--font-lora', 
   subsets: ['latin'],
   weight: ['400', '700'],
 });
@@ -29,8 +28,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${sansFont.variable} ${loraFont.variable} antialiased`}>
-        {children}
-        <Toaster />
+        <AuthProvider> {/* Wrap children with AuthProvider */}
+          {children}
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

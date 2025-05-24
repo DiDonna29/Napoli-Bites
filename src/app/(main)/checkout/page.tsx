@@ -4,32 +4,105 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from "next/link";
-import { CreditCard, CheckCircle } from "lucide-react";
+import { CreditCard, CheckCircle, Loader2 } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { db } from "@/lib/firebase/config";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import type { Order, OrderItem } from "@/types";
 
 function CheckoutPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
+
+  const [isClient, setIsClient] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [cartItems, setCartItems] = useState<OrderItem[]>([]);
+  
   const orderType = searchParams.get('orderType') || 'N/A';
-  const total = searchParams.get('total') || '0.00';
+  const subtotalParam = parseFloat(searchParams.get('total') || '0.00'); // This is subtotal from order page
   const address = searchParams.get('address');
   const tableId = searchParams.get('tableId');
 
-  // Simulate tax calculation
-  const subtotal = parseFloat(total);
   const taxRate = 0.10; // 10% tax
-  const taxAmount = subtotal * taxRate;
-  const finalTotal = subtotal + taxAmount;
+  const taxAmount = subtotalParam * taxRate;
+  const finalTotal = subtotalParam + taxAmount;
   
-  const [isClient, setIsClient] = useState(false);
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (!authLoading && !user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to proceed to checkout.",
+        variant: "destructive",
+      });
+      router.push(`/login?redirect=/checkout${searchParams.toString() ? '?' + searchParams.toString() : ''}`);
+    }
 
+    // Retrieve cart items from localStorage
+    const storedCart = localStorage.getItem('napoliBitesCart');
+    if (storedCart) {
+      setCartItems(JSON.parse(storedCart));
+    } else if (user) { // only show warning if user is logged in and cart is missing
+      toast({
+        title: "Cart Empty",
+        description: "Your cart is empty. Please add items before checking out.",
+        variant: "destructive",
+      });
+      router.push('/order');
+    }
+  }, [user, authLoading, router, toast, searchParams]);
 
-  // Generate a mock UUID for the order
-  const mockOrderId = isClient ? crypto.randomUUID() : 'loading-uuid';
+  const handleSimulatePayment = async () => {
+    if (!user) {
+      toast({ title: "Error", description: "User not authenticated.", variant: "destructive" });
+      return;
+    }
+    if (cartItems.length === 0) {
+      toast({ title: "Error", description: "Your cart is empty.", variant: "destructive" });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const newOrder: Order = {
+        userId: user.uid,
+        createdAt: Date.now(),
+        status: 'confirmed', // Simulate successful payment
+        items: cartItems,
+        totalAmount: finalTotal,
+        orderType: orderType,
+        ...(orderType === 'delivery' && address && { deliveryAddress: decodeURIComponent(address) }),
+        ...(orderType === 'dine-in' && tableId && { tableId: tableId }),
+      };
+
+      const docRef = await addDoc(collection(db, "orders"), newOrder);
+      const orderId = docRef.id;
+
+      localStorage.removeItem('napoliBitesCart'); // Clear cart after successful order
+
+      toast({ title: "Order Placed!", description: "Your payment was successful and your order is confirmed." });
+      router.push(`/confirmation/${orderId}?total=${finalTotal.toFixed(2)}&orderType=${orderType}`);
+
+    } catch (error) {
+      console.error("Error placing order: ", error);
+      toast({ title: "Order Placement Failed", description: "Could not save your order. Please try again.", variant: "destructive" });
+      setIsProcessing(false);
+    }
+  };
+  
+  if (authLoading || !isClient) {
+    return <div className="container mx-auto py-12 px-4 text-center">Loading checkout...</div>;
+  }
+
+  if (!user && !authLoading) {
+    return <div className="container mx-auto py-12 px-4 text-center">Redirecting to login...</div>;
+  }
 
   return (
     <div className="container mx-auto py-12 px-4 max-w-2xl">
@@ -49,9 +122,23 @@ function CheckoutPageContent() {
           </div>
           <Separator />
           <div>
+             <h3 className="text-lg font-semibold mb-2">Items</h3>
+            {cartItems.length > 0 ? (
+                cartItems.map(item => (
+                    <div key={`${item.id}-${item.type}`} className="flex justify-between items-center py-1 text-sm">
+                        <span>{item.name} (x{item.quantity})</span>
+                        <span>${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                ))
+            ) : (
+                <p className="text-sm text-muted-foreground">Your cart is empty.</p>
+            )}
+          </div>
+          <Separator />
+          <div>
             <h3 className="text-lg font-semibold mb-2">Payment Summary</h3>
             <div className="space-y-1 text-sm">
-              <div className="flex justify-between"><span>Subtotal:</span><span>${subtotal.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Subtotal:</span><span>${subtotalParam.toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Tax (10%):</span><span>${taxAmount.toFixed(2)}</span></div>
               <Separator className="my-1"/>
               <div className="flex justify-between font-bold text-lg"><span>Total Amount:</span><span className="text-primary">${finalTotal.toFixed(2)}</span></div>
@@ -60,10 +147,14 @@ function CheckoutPageContent() {
            <Separator />
            <div className="text-center">
             <p className="text-sm text-muted-foreground mb-4">You will be redirected to Stripe for a simulated payment.</p>
-            <Button size="lg" className="w-full bg-green-600 hover:bg-green-700 text-white" asChild>
-              <Link href={`/confirmation/${mockOrderId}?total=${finalTotal.toFixed(2)}&orderType=${orderType}`}>
-                <CreditCard className="mr-2 h-5 w-5"/> Simulate Payment with Stripe
-              </Link>
+            <Button 
+                size="lg" 
+                className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                onClick={handleSimulatePayment}
+                disabled={isProcessing || cartItems.length === 0}
+            >
+              {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CreditCard className="mr-2 h-5 w-5"/>}
+              {isProcessing ? "Processing..." : "Simulate Payment with Stripe"}
             </Button>
            </div>
         </CardContent>
@@ -76,7 +167,6 @@ function CheckoutPageContent() {
     </div>
   );
 }
-
 
 export default function CheckoutPage() {
   return (

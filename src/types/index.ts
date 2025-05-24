@@ -49,3 +49,35 @@ export interface Promotion {
   imageUrl: string;
   imageHint?: string;
 }
+
+// New types for User and Order
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL?: string | null;
+  createdAt: number; // Store as timestamp (Date.now())
+}
+
+export interface CartItemBase {
+  id: string; // Product ID
+  name: string;
+  quantity: number;
+  price: number; // Price per unit at the time of order
+}
+export interface OrderItem extends CartItemBase {
+ type: 'pizza' | 'drink';
+}
+
+
+export interface Order {
+  orderId?: string; // Firestore document ID, will be auto-generated if not set
+  userId: string;
+  createdAt: number; // Store as timestamp (Date.now())
+  status: 'pending_payment' | 'confirmed' | 'preparing' | 'out-for-delivery' | 'delivered' | 'cancelled';
+  items: OrderItem[];
+  totalAmount: number;
+  orderType: string; // 'delivery', 'pickup', 'dine-in'
+  deliveryAddress?: string | null;
+  tableId?: string | null;
+}
