@@ -1,3 +1,4 @@
+
 // src/components/shared/Header.tsx
 "use client";
 
@@ -5,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { ShoppingCart, UserCircle, Menu as MenuIcon, LogOut } from 'lucide-react';
+import { ShoppingCart, UserCircle, Menu as MenuIcon, LogOut, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -38,7 +39,7 @@ export function Header() {
     try {
       await signOut(auth);
       toast({ title: "Logged Out", description: "You have been successfully logged out." });
-      router.push('/'); // Redirect to home or login page
+      router.push('/'); 
     } catch (error) {
       console.error("Logout error:", error);
       toast({ title: "Logout Failed", description: "Could not log out. Please try again.", variant: "destructive" });
@@ -54,10 +55,10 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8 text-primary">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-            <path d="M12 6c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-            <path d="M12 13c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4zm6 5H6v-.99c.2-.72 2.36-2.01 6-2.01s5.8 1.29 6 2.01V18z"/>
+          {/* Using a simple SVG logo placeholder */}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="h-8 w-8 text-primary">
+            <circle cx="50" cy="50" r="45" fill="hsl(var(--primary))" />
+            <text x="50" y="62" fontSize="30" fill="hsl(var(--primary-foreground))" textAnchor="middle" fontWeight="bold">NB</text>
           </svg>
           <span className="font-lora text-2xl font-bold text-primary">Napoli Bites</span>
         </Link>
@@ -107,9 +108,14 @@ export function Header() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile/orders">My Orders</Link>
                 </DropdownMenuItem>
-                {/* <DropdownMenuItem asChild>
-                  <Link href="/profile/settings">Settings</Link>
-                </DropdownMenuItem> */}
+                {userData?.isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/dashboard">
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -154,10 +160,14 @@ export function Header() {
                       <SheetClose asChild>
                         <Link href="/profile/orders" className="text-lg transition-colors hover:text-primary">My Orders</Link>
                       </SheetClose>
-                      {/* <SheetClose asChild>
-                        <Link href="/profile/settings" className="text-lg transition-colors hover:text-primary">Settings</Link>
-                      </SheetClose> */}
-                       <Button variant="outline" onClick={() => { handleLogout(); }} >
+                      {userData?.isAdmin && (
+                        <SheetClose asChild>
+                           <Link href="/admin/dashboard" className="text-lg transition-colors hover:text-primary flex items-center">
+                             <ShieldCheck className="mr-2 h-5 w-5" /> Admin
+                           </Link>
+                        </SheetClose>
+                      )}
+                       <Button variant="outline" onClick={() => { handleLogout(); const closeButton = document.querySelector('#radix-\\:R1csrrq\\: > button'); if (closeButton instanceof HTMLElement) closeButton.click(); }} > {/* Added SheetClose equivalent for mobile */}
                         <LogOut className="mr-2 h-5 w-5" />
                         Logout
                       </Button>

@@ -12,28 +12,26 @@ import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { db } from "@/lib/firebase/config";
-import { collection, addDoc } from "firebase/firestore"; // serverTimestamp removed as we use Date.now()
-import type { Order, OrderItem } from "@/types";
-import { useCart } from "@/hooks/useCart"; // Import useCart
+import { collection, addDoc } from "firebase/firestore";
+import type { Order } from "@/types";
+import { useCart } from "@/hooks/useCart";
 
 const TAX_RATE = 0.10; // 10% tax
 
 function CheckoutPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userData, loading: authLoading } = useAuth(); // Added userData
   const { toast } = useToast();
-  const { cartItems, getCartSubtotal, clearCart: clearCartHook } = useCart(); // Use cart hook
+  const { cartItems, getCartSubtotal, clearCart: clearCartHook } = useCart();
 
   const [isClient, setIsClient] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Order details from URL params (primarily for non-cart related info like type/address)
-  const orderType = searchParams.get('orderType') || 'delivery'; // Default to delivery if not specified
+  const orderType = searchParams.get('orderType') || 'delivery';
   const address = searchParams.get('address');
   const tableId = searchParams.get('tableId');
 
-  // Calculate totals based on cartItems from useCart
   const subtotal = getCartSubtotal();
   const taxAmount = subtotal * TAX_RATE;
   const finalTotal = subtotal + taxAmount;
@@ -46,7 +44,6 @@ function CheckoutPageContent() {
         description: "Please log in to proceed to checkout.",
         variant: "destructive",
       });
-      // Preserve current checkout query params when redirecting to login
       const redirectParams = new URLSearchParams(searchParams.toString());
       router.push(`/login?redirect=/checkout%3F${redirectParams.toString()}`);
     }
@@ -57,13 +54,13 @@ function CheckoutPageContent() {
         description: "Your cart is empty. Please add items before checking out.",
         variant: "destructive",
       });
-      router.push('/order'); // Or '/' to browse menu
+      router.push('/order');
     }
   }, [user, authLoading, router, toast, searchParams, cartItems]);
 
   const handleSimulatePayment = async () => {
-    if (!user) {
-      toast({ title: "Error", description: "User not authenticated.", variant: "destructive" });
+    if (!user || !userData) { // Ensure userData is also available
+      toast({ title: "Error", description: "User not authenticated or user data missing.", variant: "destructive" });
       return;
     }
     if (cartItems.length === 0) {
@@ -75,9 +72,11 @@ function CheckoutPageContent() {
     try {
       const newOrder: Order = {
         userId: user.uid,
+        userDisplayName: userData.displayName || 'N/A', // Store user's name
+        userEmail: userData.email || 'N/A', // Store user's email
         createdAt: Date.now(),
-        status: 'confirmed', // Simulate successful payment
-        items: cartItems, // Use detailed cartItems from useCart
+        status: 'confirmed',
+        items: cartItems,
         totalAmount: finalTotal,
         orderType: orderType,
         ...(orderType === 'delivery' && address && { deliveryAddress: decodeURIComponent(address) }),
@@ -87,7 +86,7 @@ function CheckoutPageContent() {
       const docRef = await addDoc(collection(db, "orders"), newOrder);
       const orderId = docRef.id;
 
-      clearCartHook(); // Clear cart using hook after successful order
+      clearCartHook();
 
       toast({ title: "Order Placed!", description: "Your payment was successful and your order is confirmed." });
       router.push(`/confirmation/${orderId}?total=${finalTotal.toFixed(2)}&orderType=${orderType}`);

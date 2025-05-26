@@ -57,6 +57,7 @@ export interface UserProfile {
   displayName: string | null;
   photoURL?: string | null;
   createdAt: number; // Store as timestamp (Date.now())
+  isAdmin?: boolean; // Added for admin role
 }
 
 // This is the detailed structure for items in the cart and in an order
@@ -72,12 +73,13 @@ export interface OrderItem {
   selectedAddons?: PizzaAddon[]; // Store full addon objects
   imageUrl?: string;
   imageHint?: string;
-  // For pizzas, `name` might be "Margherita (Medium)" to include size
 }
 
 export interface Order {
   orderId?: string; // Firestore document ID, will be auto-generated if not set
   userId: string;
+  userDisplayName?: string; // Denormalized for easier display in admin
+  userEmail?: string; // Denormalized for easier display in admin
   createdAt: number; // Store as timestamp (Date.now())
   status: 'pending_payment' | 'confirmed' | 'preparing' | 'out-for-delivery' | 'delivered' | 'cancelled';
   items: OrderItem[]; // Uses the detailed OrderItem defined above
@@ -86,3 +88,4 @@ export interface Order {
   deliveryAddress?: string | null;
   tableId?: string | null;
 }
+

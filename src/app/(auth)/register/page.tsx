@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { UserPlus, Home } from "lucide-react"; // Added Home icon
+import { UserPlus, Home } from "lucide-react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -47,12 +47,14 @@ export default function RegisterPage() {
 
       await updateProfile(user, { displayName: data.fullName });
 
+      // By default, users are not admins. Admin status must be set manually in Firestore.
       const newUserProfile: UserProfile = {
         uid: user.uid,
         email: user.email,
         displayName: data.fullName,
         photoURL: user.photoURL, 
         createdAt: Date.now(),
+        isAdmin: false, // Default to not admin
       };
       await setDoc(doc(db, "users", user.uid), newUserProfile);
 
@@ -78,12 +80,14 @@ export default function RegisterPage() {
       const userDocSnap = await getDoc(userDocRef);
 
       if (!userDocSnap.exists()) {
+        // By default, users are not admins. Admin status must be set manually in Firestore.
         const newUserProfile: UserProfile = {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
           photoURL: user.photoURL,
           createdAt: Date.now(),
+          isAdmin: false, // Default to not admin
         };
         await setDoc(userDocRef, newUserProfile);
         toast({ title: "Registration Successful", description: `Welcome, ${user.displayName || 'User'}!` });
@@ -176,5 +180,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-
-    
