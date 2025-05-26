@@ -1,41 +1,49 @@
+
+// src/app/(main)/cart/page.tsx
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
 import { MinusCircle, PlusCircle, ShoppingCart, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useCart } from "@/hooks/useCart";
+import { useRouter } from "next/navigation";
 
-// Mock cart data
-const mockCartItems = [
-  {
-    id: "pizza-1",
-    name: "Margherita (Medium)",
-    price: 15.99,
-    quantity: 1,
-    imageUrl: "https://placehold.co/100x100.png",
-    imageHint: "pizza margherita",
-  },
-  {
-    id: "drink-1",
-    name: "Coca-Cola",
-    price: 2.50,
-    quantity: 2,
-    imageUrl: "https://placehold.co/100x100.png",
-    imageHint: "drink soda",
-  },
-];
-
-const subtotal = mockCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-const tax = subtotal * 0.1; // Example 10% tax
-const total = subtotal + tax;
+const TAX_RATE = 0.1; // Example 10% tax
 
 export default function CartPage() {
+  const { cartItems, removeFromCart, updateQuantity, getCartSubtotal, clearCart } = useCart();
+  const router = useRouter();
+
+  const subtotal = getCartSubtotal();
+  const tax = subtotal * TAX_RATE;
+  const total = subtotal + tax;
+
+  const handleProceedToCheckout = () => {
+    if (cartItems.length === 0) {
+      // This should ideally not happen if button is disabled, but as a fallback
+      alert("Your cart is empty. Please add items to your order.");
+      return;
+    }
+    // The order type and address are not collected on this page.
+    // They are collected on the /order page or passed as params.
+    // For checkout, we primarily need the cart items.
+    // The /checkout page will pick up cart from localStorage (managed by useCart).
+    // It might need to know the order type (delivery, pickup, dine-in) to show relevant info.
+    // For now, let's assume default flow from here goes to a generic checkout.
+    // Or, we could redirect to /order page if more info is needed.
+    // Let's push directly to checkout, assuming order page context is set or not strictly needed for checkout initiation here.
+    router.push('/checkout'); 
+  };
+
+
   return (
     <div className="container mx-auto py-12 px-4">
       <h1 className="text-4xl font-lora font-bold text-center mb-10 text-primary">Your Shopping Cart</h1>
 
-      {mockCartItems.length === 0 ? (
+      {cartItems.length === 0 ? (
         <Card className="text-center py-12">
            <CardHeader>
             <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -53,31 +61,36 @@ export default function CartPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {mockCartItems.map(item => (
-              <Card key={item.id} className="flex items-center p-4 shadow-md">
+            {cartItems.map(item => (
+              <Card key={item.cartItemId} className="flex items-center p-4 shadow-md">
                 <Image
-                  src={item.imageUrl}
+                  src={item.imageUrl || "https://placehold.co/100x100.png"}
                   alt={item.name}
                   width={80}
                   height={80}
                   className="rounded-md object-cover"
-                  data-ai-hint={item.imageHint}
+                  data-ai-hint={item.imageHint || (item.type === 'pizza' ? "pizza food" : "drink beverage")}
                 />
                 <div className="ml-4 flex-grow">
                   <h3 className="font-semibold">{item.name}</h3>
-                  <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">${item.unitPrice.toFixed(2)} each</p>
+                  {item.type === 'pizza' && item.selectedAddons && item.selectedAddons.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Add-ons: {item.selectedAddons.map(a => a.name).join(', ')}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)} disabled={item.quantity <= 1}>
                     <MinusCircle className="h-4 w-4" />
                   </Button>
                   <span>{item.quantity}</span>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)} disabled={item.quantity >= 5}>
                     <PlusCircle className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="ml-4 font-semibold w-20 text-right">${(item.price * item.quantity).toFixed(2)}</p>
-                <Button variant="ghost" size="icon" className="ml-2 text-red-500 hover:text-red-700 h-7 w-7">
+                <p className="ml-4 font-semibold w-20 text-right">${item.totalPrice.toFixed(2)}</p>
+                <Button variant="ghost" size="icon" className="ml-2 text-destructive hover:text-destructive/80 h-7 w-7" onClick={() => removeFromCart(item.cartItemId)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </Card>
@@ -94,13 +107,13 @@ export default function CartPage() {
                 <span>${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span>Estimated Tax (10%)</span>
+                <span>Estimated Tax ({ (TAX_RATE * 100).toFixed(0) }%)</span>
                 <span>${tax.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              {/* <div className="flex justify-between text-sm">
                 <span>Delivery Fee</span>
-                <span className="text-green-600">Free</span> {/* Placeholder */}
-              </div>
+                <span className="text-green-600">Free</span> 
+              </div> */}
               <Separator />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
@@ -108,11 +121,19 @@ export default function CartPage() {
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
-                <Link href="/checkout">Proceed to Checkout</Link>
+              <Button 
+                size="lg" 
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" 
+                onClick={handleProceedToCheckout}
+                disabled={cartItems.length === 0}
+              >
+                Proceed to Checkout
               </Button>
               <Button variant="outline" className="w-full" asChild>
                  <Link href="/#menu">Continue Shopping</Link>
+              </Button>
+               <Button variant="ghost" size="sm" className="w-full text-destructive hover:text-destructive/80" onClick={clearCart}>
+                 Clear Cart
               </Button>
             </CardFooter>
           </Card>

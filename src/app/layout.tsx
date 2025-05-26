@@ -1,8 +1,10 @@
+
 import type {Metadata} from 'next';
 import { Inter, Lora } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/context/AuthContext'; // Import AuthProvider
+import { CartProvider } from '@/hooks/useCart'; // Import CartProvider
 
 const sansFont = Inter({
   variable: '--font-geist-sans', 
@@ -29,8 +31,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${sansFont.variable} ${loraFont.variable} antialiased`}>
         <AuthProvider> {/* Wrap children with AuthProvider */}
-          {children}
-          <Toaster />
+          <CartProvider> {/* Wrap with CartProvider */}
+            {children}
+            <Toaster />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

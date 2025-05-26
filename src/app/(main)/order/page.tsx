@@ -1,3 +1,4 @@
+
 // src/app/(main)/order/page.tsx
 "use client";
 
@@ -9,27 +10,28 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { PIZZAS_DATA, DRINKS_DATA } from "@/constants/menu";
-import type { Pizza, Drink, OrderItem } from "@/types";
+import type { Pizza, Drink, OrderItem, PizzaSizeOption } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
-import { useState, Suspense, useEffect } from "react";
+import { useState, Suspense, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ShoppingCart, Utensils, Bike, Package } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/hooks/useCart"; // Import useCart
 
 function OrderPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const { addToCart, cartItems, getCartSubtotal } = useCart(); // Use cart functionalities
 
   const initialOrderType = searchParams.get('type') || 'delivery';
   const initialTableId = searchParams.get('table');
 
   const [orderType, setOrderType] = useState(initialOrderType);
   const [address, setAddress] = useState("");
-  const [cart, setCart] = useState<OrderItem[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -42,19 +44,19 @@ function OrderPageContent() {
     }
   }, [user, authLoading, router, toast, searchParams]);
 
-  const addToCart = (item: Pizza | Drink, type: 'pizza' | 'drink') => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(ci => ci.id === item.id && ci.type === type);
-      if (existingItem) {
-        return prevCart.map(ci => ci.id === item.id && ci.type === type ? { ...ci, quantity: ci.quantity + 1 } : ci);
-      }
-      const price = type === 'pizza' ? (item as Pizza).basePrice : (item as Drink).price;
-      return [...prevCart, { id: item.id, name: item.name, price, quantity: 1, type }];
-    });
-     toast({ title: "Item Added", description: `${item.name} added to your order.` });
+  const handleAddToCart = (item: Pizza | Drink, type: 'pizza' | 'drink') => {
+    if (type === 'pizza') {
+      const pizza = item as Pizza;
+      // For items added from this page, use default size (first in array) and no addons.
+      // Full customization is available via PizzaCard on the main menu.
+      const defaultSize = pizza.sizes[0]; 
+      addToCart(pizza, 'pizza', 1, defaultSize, []);
+    } else {
+      addToCart(item, 'drink', 1);
+    }
   };
 
-  const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const totalAmount = getCartSubtotal();
 
   const handleProceedToCheckout = () => {
     if (!user) {
@@ -74,12 +76,19 @@ function OrderPageContent() {
       });
       return;
     }
-    // Save cart to localStorage to pass to checkout page
-    localStorage.setItem('napoliBitesCart', JSON.stringify(cart));
+    if (cartItems.length === 0) {
+      toast({
+        title: "Empty Cart",
+        description: "Please add items to your order before proceeding.",
+        variant: "destructive",
+      });
+      return;
+    }
+    // useCart hook now manages localStorage persistence
     
     const checkoutParams = new URLSearchParams();
     checkoutParams.set('orderType', orderType);
-    checkoutParams.set('total', totalAmount.toFixed(2));
+    // checkoutParams.set('total', totalAmount.toFixed(2)); // Total will be recalculated on checkout page from cart
     if (orderType === 'delivery' && address) checkoutParams.set('address', encodeURIComponent(address));
     if (initialTableId) checkoutParams.set('tableId', initialTableId);
     
@@ -91,10 +100,8 @@ function OrderPageContent() {
   }
   
   if (!user && !authLoading) {
-     // This will be handled by useEffect redirect, but good for initial render before effect runs
     return <div className="container mx-auto py-12 px-4 text-center">Redirecting to login...</div>;
   }
-
 
   return (
     <div className="container mx-auto py-12 px-4">
@@ -163,10 +170,10 @@ function OrderPageContent() {
                   <CardDescription className="text-xs h-10 overflow-hidden text-ellipsis">{pizza.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="py-2">
-                  <p className="font-semibold">${pizza.basePrice.toFixed(2)}</p>
+                  <p className="font-semibold">From ${pizza.basePrice.toFixed(2)}</p>
                 </CardContent>
                 <CardFooter>
-                  <Button size="sm" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => addToCart(pizza, 'pizza')}>Add to Order</Button>
+                  <Button size="sm" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleAddToCart(pizza, 'pizza')}>Add to Order</Button>
                 </CardFooter>
               </Card>
             ))}
@@ -184,7 +191,7 @@ function OrderPageContent() {
                   <p className="font-semibold">${drink.price.toFixed(2)}</p>
                 </CardContent>
                 <CardFooter>
-                  <Button size="sm" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => addToCart(drink, 'drink')}>Add to Order</Button>
+                  <Button size="sm" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleAddToCart(drink, 'drink')}>Add to Order</Button>
                 </CardFooter>
               </Card>
             ))}
@@ -192,33 +199,53 @@ function OrderPageContent() {
         </CardContent>
       </Card>
       
-      {cart.length > 0 && (
+      {cartItems.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>3. Order Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            {cart.map(item => (
-              <div key={`${item.id}-${item.type}`} className="flex justify-between items-center py-2 border-b">
+            {cartItems.map(item => (
+              <div key={item.cartItemId} className="flex justify-between items-center py-2 border-b">
                 <div>
                   <p className="font-medium">{item.name} (x{item.quantity})</p>
-                  <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
+                  <p className="text-sm text-muted-foreground">${item.unitPrice.toFixed(2)} each</p>
+                   {item.type === 'pizza' && item.selectedAddons && item.selectedAddons.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Add-ons: {item.selectedAddons.map(a => a.name).join(', ')}
+                    </p>
+                  )}
                 </div>
-                <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                <p className="font-semibold">${item.totalPrice.toFixed(2)}</p>
               </div>
             ))}
             <div className="flex justify-between items-center mt-4 pt-2 border-t">
-              <p className="text-xl font-bold">Total:</p>
+              <p className="text-xl font-bold">Subtotal:</p>
               <p className="text-xl font-bold text-primary">${totalAmount.toFixed(2)}</p>
             </div>
+             <p className="text-xs text-muted-foreground mt-1">Taxes and final total will be calculated at checkout.</p>
           </CardContent>
           <CardFooter>
-            <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleProceedToCheckout} disabled={!user || (orderType === 'dine-in' && !initialTableId && orderType !== 'pickup' && orderType !== 'delivery')}>
+            <Button 
+              size="lg" 
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" 
+              onClick={handleProceedToCheckout} 
+              disabled={!user || (orderType === 'dine-in' && !initialTableId && orderType !== 'pickup' && orderType !== 'delivery') || cartItems.length === 0}
+            >
                 <ShoppingCart className="mr-2 h-5 w-5" /> Proceed to Checkout
             </Button>
           </CardFooter>
         </Card>
       )}
+       {cartItems.length === 0 && (
+         <Card className="text-center py-8">
+           <CardContent>
+             <ShoppingCart className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
+             <CardTitle className="text-lg mb-1">Your Order is Empty</CardTitle>
+             <CardDescription>Please add some items from the menu above.</CardDescription>
+           </CardContent>
+         </Card>
+       )}
     </div>
   );
 }

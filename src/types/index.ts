@@ -1,3 +1,4 @@
+
 export interface PizzaAddon {
   id: string;
   name: string;
@@ -7,29 +8,29 @@ export interface PizzaAddon {
 export interface PizzaSizeOption {
   id: string;
   name: string; // e.g., "Small", "Medium", "Large"
-  price: number;
+  price: number; // This is the *additional* price for this size relative to basePrice
   diameterInches?: number;
 }
 
 export interface Pizza {
-  id: string;
+  id: string; // productId
   name: string;
   description: string;
   imageUrl: string;
   imageHint?: string;
-  basePrice: number; // Price for a default size, or sizes will have their own price
+  basePrice: number; // Price for the default/base size (e.g., small)
   sizes: PizzaSizeOption[];
   availableAddons: PizzaAddon[];
   category?: string; // e.g., "Vegetarian", "MeatLover"
 }
 
 export interface Drink {
-  id: string;
+  id: string; // productId
   name: string;
   description?: string;
   imageUrl: string;
   imageHint?: string;
-  price: number;
+  price: number; // unit price for drinks
   volume?: string; // e.g., "330ml", "500ml"
   category?: string; // e.g., "Soft Drink", "Alcoholic"
 }
@@ -50,7 +51,6 @@ export interface Promotion {
   imageHint?: string;
 }
 
-// New types for User and Order
 export interface UserProfile {
   uid: string;
   email: string | null;
@@ -59,23 +59,28 @@ export interface UserProfile {
   createdAt: number; // Store as timestamp (Date.now())
 }
 
-export interface CartItemBase {
-  id: string; // Product ID
+// This is the detailed structure for items in the cart and in an order
+export interface OrderItem {
+  cartItemId: string; // Unique identifier for this specific cart line item (e.g., pizzaId_sizeId_addonsHash)
+  productId: string; // Original product ID (e.g., pizza-1)
   name: string;
   quantity: number;
-  price: number; // Price per unit at the time of order
+  unitPrice: number; // Calculated price for one unit of this item with its options
+  totalPrice: number; // unitPrice * quantity
+  type: 'pizza' | 'drink';
+  size?: PizzaSizeOption['name']; // Store size name for display
+  selectedAddons?: PizzaAddon[]; // Store full addon objects
+  imageUrl?: string;
+  imageHint?: string;
+  // For pizzas, `name` might be "Margherita (Medium)" to include size
 }
-export interface OrderItem extends CartItemBase {
- type: 'pizza' | 'drink';
-}
-
 
 export interface Order {
   orderId?: string; // Firestore document ID, will be auto-generated if not set
   userId: string;
   createdAt: number; // Store as timestamp (Date.now())
   status: 'pending_payment' | 'confirmed' | 'preparing' | 'out-for-delivery' | 'delivered' | 'cancelled';
-  items: OrderItem[];
+  items: OrderItem[]; // Uses the detailed OrderItem defined above
   totalAmount: number;
   orderType: string; // 'delivery', 'pickup', 'dine-in'
   deliveryAddress?: string | null;
