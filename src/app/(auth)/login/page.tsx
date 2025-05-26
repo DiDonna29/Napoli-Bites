@@ -146,7 +146,7 @@ export default function LoginPage() {
         <CardFooter className="flex-col items-center text-sm space-y-2">
           <div>
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-primary hover:underline font-medium">
+            <Link href={`/register${redirectUrl !== '/' ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`} className="text-primary hover:underline font-medium">
               Sign Up
             </Link>
           </div>
