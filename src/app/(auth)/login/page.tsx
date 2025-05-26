@@ -52,7 +52,14 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     // CRITICAL DIAGNOSTIC: Check this log in your BROWSER'S developer console.
-    console.log("Attempting Google Sign-In. Firebase SDK is using Auth Domain:", auth.app.options.authDomain); 
+    // This will show the authDomain your Firebase SDK is currently using.
+    // Compare this with your .env.local NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN and your Firebase project settings.
+    // If you recently changed .env.local, ensure you RESTARTED your Next.js dev server.
+    console.log(
+      "Attempting Google Sign-In. Firebase SDK is using Auth Domain:", 
+      auth.app.options.authDomain, 
+      "Is this domain listed in your Firebase Console > Authentication > Sign-in method > Authorized domains? Also, verify NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN in your .env.local file is correct and the dev server was restarted."
+    ); 
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -84,10 +91,6 @@ export default function LoginPage() {
           variant: "default",
         });
         return;
-      }
-      // Log the specific error code and message for auth/unauthorized-domain
-      if (error.code === 'auth/unauthorized-domain') {
-        console.error("Firebase Auth Error: auth/unauthorized-domain. Ensure your current domain (from where the app is served) is listed in Firebase Console > Authentication > Sign-in method > Authorized domains. Also, verify NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN in your .env.local file is correct and the dev server was restarted.");
       }
       toast({
         title: "Google Login Failed",
