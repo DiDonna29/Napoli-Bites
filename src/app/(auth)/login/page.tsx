@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { LogIn, Home } from "lucide-react"; // Added Home icon
+import { LogIn, Home } from "lucide-react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -75,7 +75,7 @@ export default function LoginPage() {
           displayName: user.displayName,
           photoURL: user.photoURL,
           createdAt: Date.now(),
-          isAdmin: false, // Default to not admin
+          isAdmin: false,
         };
         await setDoc(userDocRef, newUserProfile);
       }
