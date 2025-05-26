@@ -39,7 +39,7 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       toast({ title: "Login Successful", description: "Welcome back!" });
-      router.push(redirectUrl); 
+      router.push(redirectUrl);
     } catch (error: any) {
       console.error("Email login error:", error);
       toast({
@@ -51,15 +51,20 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    // CRITICAL DIAGNOSTIC: Check this log in your BROWSER'S developer console.
-    // This will show the authDomain your Firebase SDK is currently using.
-    // Compare this with your .env.local NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN and your Firebase project settings.
-    // If you recently changed .env.local, ensure you RESTARTED your Next.js dev server.
+    const currentOrigin = typeof window !== "undefined" ? window.location.origin : "N/A (server)";
+    const firebaseAuthDomain = auth.app.options.authDomain || "NOT SET";
+
     console.log(
-      "Attempting Google Sign-In. Firebase SDK is using Auth Domain:", 
-      auth.app.options.authDomain, 
-      "Is this domain listed in your Firebase Console > Authentication > Sign-in method > Authorized domains? Also, verify NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN in your .env.local file is correct and the dev server was restarted."
-    ); 
+      "--- DIAGNOSTIC: Google Sign-In Attempt ---",
+      "\n1. Current Application Origin (from browser):", currentOrigin,
+      "\n2. Firebase SDK Auth Domain (from config):", firebaseAuthDomain,
+      "\n\nACTION REQUIRED:",
+      `\n- Ensure domain '${currentOrigin}' (or its base, e.g., 'localhost' if applicable) IS LISTED in your Firebase Console > Authentication > Sign-in method > Authorized domains.`,
+      `\n- Ensure your NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN in .env.local EXACTLY matches '${firebaseAuthDomain}'.`,
+      "\n- If you recently changed .env.local, ensure you RESTARTED your Next.js dev server.",
+      "\n------------------------------------------"
+    );
+
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -92,11 +97,21 @@ export default function LoginPage() {
         });
         return;
       }
-      toast({
-        title: "Google Login Failed",
-        description: error.message || "Could not sign in with Google.",
-        variant: "destructive",
-      });
+      // Check if the error is 'auth/unauthorized-domain' and provide specific guidance
+      if (error.code === 'auth/unauthorized-domain') {
+         toast({
+            title: "Google Login Failed: Unauthorized Domain",
+            description: `The domain '${currentOrigin}' is not authorized. Please check Firebase console & .env.local settings (see browser console for details).`,
+            variant: "destructive",
+            duration: 9000, // Longer duration for this specific error
+        });
+      } else {
+        toast({
+            title: "Google Login Failed",
+            description: error.message || "Could not sign in with Google.",
+            variant: "destructive",
+        });
+      }
     }
   };
 
