@@ -51,7 +51,8 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    console.log("Attempting Google Sign-In. Using Auth Domain:", auth.app.options.authDomain); // Diagnostic log
+    // CRITICAL DIAGNOSTIC: Check this log in your BROWSER'S developer console.
+    console.log("Attempting Google Sign-In. Firebase SDK is using Auth Domain:", auth.app.options.authDomain); 
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -86,7 +87,7 @@ export default function LoginPage() {
       }
       // Log the specific error code and message for auth/unauthorized-domain
       if (error.code === 'auth/unauthorized-domain') {
-        console.error("Firebase Auth Error: auth/unauthorized-domain. Ensure your current domain is listed in Firebase Console > Authentication > Sign-in method > Authorized domains.");
+        console.error("Firebase Auth Error: auth/unauthorized-domain. Ensure your current domain (from where the app is served) is listed in Firebase Console > Authentication > Sign-in method > Authorized domains. Also, verify NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN in your .env.local file is correct and the dev server was restarted.");
       }
       toast({
         title: "Google Login Failed",

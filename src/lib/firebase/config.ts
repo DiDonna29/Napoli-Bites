@@ -1,3 +1,4 @@
+
 // src/lib/firebase/config.ts
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
@@ -15,11 +16,14 @@ const firebaseConfig = {
 };
 
 // Basic validation to ensure environment variables are loaded
-if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+if (!firebaseConfig.apiKey || !firebaseConfig.projectId || !firebaseConfig.authDomain) {
   console.error(
-    'Firebase configuration error: API Key or Project ID is missing from environment variables. ' +
-    'Make sure your .env.local file is set up correctly with NEXT_PUBLIC_FIREBASE_ variables and that the Next.js development server was restarted after changes to .env.local.'
+    'Firebase configuration error: Crucial Firebase environment variables (apiKey, projectId, authDomain) are missing. ' +
+    'Ensure your .env.local file is set up correctly with NEXT_PUBLIC_FIREBASE_ prefixed variables and that the Next.js development server was restarted after changes to .env.local.'
   );
+  if (!firebaseConfig.apiKey) console.error("NEXT_PUBLIC_FIREBASE_API_KEY is missing or empty.");
+  if (!firebaseConfig.authDomain) console.error("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN is missing or empty.");
+  if (!firebaseConfig.projectId) console.error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing or empty.");
   // Depending on how critical Firebase is at boot, you might throw an error here
   // or allow the app to continue with potentially broken Firebase functionality.
 }
