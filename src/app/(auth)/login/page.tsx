@@ -80,7 +80,7 @@ export default function LoginPage() {
           displayName: user.displayName,
           photoURL: user.photoURL,
           createdAt: Date.now(),
-          isAdmin: false,
+          isAdmin: false, // Default isAdmin to false
         };
         await setDoc(userDocRef, newUserProfile);
       }

@@ -53,7 +53,7 @@ export default function RegisterPage() {
         displayName: data.fullName,
         photoURL: user.photoURL,
         createdAt: Date.now(),
-        isAdmin: false,
+        isAdmin: false, // Default isAdmin to false
       };
       await setDoc(doc(db, "users", user.uid), newUserProfile);
 
@@ -99,11 +99,12 @@ export default function RegisterPage() {
           displayName: user.displayName,
           photoURL: user.photoURL,
           createdAt: Date.now(),
-          isAdmin: false,
+          isAdmin: false, // Default isAdmin to false
         };
         await setDoc(userDocRef, newUserProfile);
         toast({ title: "Registration Successful", description: `Welcome, ${user.displayName || 'User'}!` });
       } else {
+        // User already exists, treat as login
         toast({ title: "Login Successful", description: `Welcome back, ${user.displayName || 'User'}!` });
       }
       
