@@ -80,7 +80,7 @@ export default function LoginPage() {
           displayName: user.displayName,
           photoURL: user.photoURL,
           createdAt: Date.now(),
-          isAdmin: false, // Default isAdmin to false
+          isAdmin: false,
         };
         await setDoc(userDocRef, newUserProfile);
       }
@@ -97,13 +97,12 @@ export default function LoginPage() {
         });
         return;
       }
-      // Check if the error is 'auth/unauthorized-domain' and provide specific guidance
       if (error.code === 'auth/unauthorized-domain') {
          toast({
             title: "Google Login Failed: Unauthorized Domain",
-            description: `The domain '${currentOrigin}' is not authorized. Please check Firebase console & .env.local settings (see browser console for details).`,
+            description: `Error: ${error.message}. The domain '${currentOrigin}' is not authorized. 1. Check Firebase console > Authentication > Sign-in method > Authorized domains. 2. Verify NEXT_PUBLIC_FIREBASE_... variables in .env.local. 3. Restart dev server after .env.local changes. See browser console for more details.`,
             variant: "destructive",
-            duration: 9000, // Longer duration for this specific error
+            duration: 15000, // Longer duration for this detailed error
         });
       } else {
         toast({
