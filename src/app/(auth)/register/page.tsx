@@ -47,14 +47,13 @@ export default function RegisterPage() {
 
       await updateProfile(user, { displayName: data.fullName });
 
-      // By default, users are not admins. Admin status must be set manually in Firestore.
       const newUserProfile: UserProfile = {
         uid: user.uid,
         email: user.email,
         displayName: data.fullName,
         photoURL: user.photoURL, 
         createdAt: Date.now(),
-        isAdmin: false, // Default to not admin
+        isAdmin: false, 
       };
       await setDoc(doc(db, "users", user.uid), newUserProfile);
 
@@ -71,6 +70,7 @@ export default function RegisterPage() {
   };
 
   const handleGoogleRegister = async () => {
+    console.log("Attempting Google Sign-Up. Using Auth Domain:", auth.app.options.authDomain); // Diagnostic log
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -80,19 +80,17 @@ export default function RegisterPage() {
       const userDocSnap = await getDoc(userDocRef);
 
       if (!userDocSnap.exists()) {
-        // By default, users are not admins. Admin status must be set manually in Firestore.
         const newUserProfile: UserProfile = {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
           photoURL: user.photoURL,
           createdAt: Date.now(),
-          isAdmin: false, // Default to not admin
+          isAdmin: false, 
         };
         await setDoc(userDocRef, newUserProfile);
         toast({ title: "Registration Successful", description: `Welcome, ${user.displayName || 'User'}!` });
       } else {
-        // User already exists, treat as login
         toast({ title: "Login Successful", description: `Welcome back, ${user.displayName || 'User'}!` });
       }
       
@@ -106,6 +104,10 @@ export default function RegisterPage() {
           variant: "default",
         });
         return;
+      }
+      // Log the specific error code and message for auth/unauthorized-domain
+      if (error.code === 'auth/unauthorized-domain') {
+        console.error("Firebase Auth Error: auth/unauthorized-domain. Ensure your current domain is listed in Firebase Console > Authentication > Sign-in method > Authorized domains.");
       }
       toast({
         title: "Google Sign-Up Failed",

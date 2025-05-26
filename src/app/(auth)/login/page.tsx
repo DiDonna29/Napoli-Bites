@@ -51,6 +51,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
+    console.log("Attempting Google Sign-In. Using Auth Domain:", auth.app.options.authDomain); // Diagnostic log
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -66,6 +67,7 @@ export default function LoginPage() {
           displayName: user.displayName,
           photoURL: user.photoURL,
           createdAt: Date.now(),
+          isAdmin: false, // Default to not admin
         };
         await setDoc(userDocRef, newUserProfile);
       }
@@ -74,7 +76,6 @@ export default function LoginPage() {
       router.push(redirectUrl);
     } catch (error: any) {
       console.error("Google login error:", error);
-      // Handle specific Google auth errors more gracefully if needed
       if (error.code === 'auth/popup-closed-by-user') {
         toast({
           title: "Login Cancelled",
@@ -82,6 +83,10 @@ export default function LoginPage() {
           variant: "default",
         });
         return;
+      }
+      // Log the specific error code and message for auth/unauthorized-domain
+      if (error.code === 'auth/unauthorized-domain') {
+        console.error("Firebase Auth Error: auth/unauthorized-domain. Ensure your current domain is listed in Firebase Console > Authentication > Sign-in method > Authorized domains.");
       }
       toast({
         title: "Google Login Failed",
@@ -151,5 +156,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    
