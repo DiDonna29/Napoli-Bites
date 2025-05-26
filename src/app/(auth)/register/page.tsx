@@ -1,3 +1,4 @@
+
 // src/app/(auth)/register/page.tsx
 "use client";
 
@@ -6,11 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Home } from "lucide-react"; // Added Home icon
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/config";
 import { doc, setDoc, getDoc } from "firebase/firestore";
@@ -31,31 +32,32 @@ type RegisterFormInputs = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormInputs>({
     resolver: zodResolver(registerSchema),
   });
+
+  const redirectUrl = searchParams.get('redirect') || '/';
 
   const handleEmailRegister: SubmitHandler<RegisterFormInputs> = async (data) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
-      // Update Firebase Auth profile
       await updateProfile(user, { displayName: data.fullName });
 
-      // Create user document in Firestore
       const newUserProfile: UserProfile = {
         uid: user.uid,
         email: user.email,
         displayName: data.fullName,
-        photoURL: user.photoURL, // Will be null initially
+        photoURL: user.photoURL, 
         createdAt: Date.now(),
       };
       await setDoc(doc(db, "users", user.uid), newUserProfile);
 
       toast({ title: "Registration Successful", description: "Welcome to Napoli Bites!" });
-      router.push("/"); // Redirect to homepage or dashboard
+      router.push(redirectUrl); 
     } catch (error: any) {
       console.error("Email registration error:", error);
       toast({
@@ -72,7 +74,6 @@ export default function RegisterPage() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if user document exists, if not, create it (handles both new and existing Google users)
       const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
@@ -87,12 +88,21 @@ export default function RegisterPage() {
         await setDoc(userDocRef, newUserProfile);
         toast({ title: "Registration Successful", description: `Welcome, ${user.displayName || 'User'}!` });
       } else {
+        // User already exists, treat as login
         toast({ title: "Login Successful", description: `Welcome back, ${user.displayName || 'User'}!` });
       }
       
-      router.push("/");
+      router.push(redirectUrl);
     } catch (error: any) {
       console.error("Google registration/login error:", error);
+       if (error.code === 'auth/popup-closed-by-user') {
+        toast({
+          title: "Sign-Up Cancelled",
+          description: "Google sign-up was cancelled.",
+          variant: "default",
+        });
+        return;
+      }
       toast({
         title: "Google Sign-Up Failed",
         description: error.message || "Could not sign up with Google.",
@@ -149,13 +159,22 @@ export default function RegisterPage() {
             </Button>
           </CardContent>
         </form>
-        <CardFooter className="text-center text-sm">
-          Already have an account?{' '}
-          <Link href="/login" className="text-primary hover:underline font-medium">
-            Log In
-          </Link>
+        <CardFooter className="flex-col items-center text-sm space-y-2">
+          <div>
+            Already have an account?{' '}
+            <Link href="/login" className="text-primary hover:underline font-medium">
+              Log In
+            </Link>
+          </div>
+           <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-primary">
+            <Link href="/">
+              <Home className="mr-1 h-3 w-3" /> Return to Homepage
+            </Link>
+          </Button>
         </CardFooter>
       </Card>
     </div>
   );
 }
+
+    

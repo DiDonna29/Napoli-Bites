@@ -1,3 +1,4 @@
+
 // src/app/(main)/confirmation/[orderId]/page.tsx
 "use client";
 
@@ -11,11 +12,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
-import type { Order, OrderItem, UserProfile } from "@/types"; // Added UserProfile
-
-interface ConfirmationPageProps {
-  params: { orderId: string };
-}
+import type { Order, OrderItem, UserProfile } from "@/types"; 
 
 function ConfirmationPageContent() {
   const routeParams = useParams<{ orderId: string }>();
@@ -42,10 +39,9 @@ function ConfirmationPageContent() {
         const orderDocSnap = await getDoc(orderDocRef);
 
         if (orderDocSnap.exists()) {
-          const fetchedOrder = orderDocSnap.data() as Order;
+          const fetchedOrder = { ...orderDocSnap.data(), orderId: orderDocSnap.id } as Order;
           setOrder(fetchedOrder);
 
-          // Fetch customer details if not already available from auth context and order has userId
           if (fetchedOrder.userId && (!authUserData || authUserData.uid !== fetchedOrder.userId)) {
             const userDocRef = doc(db, "users", fetchedOrder.userId);
             const userDocSnap = await getDoc(userDocRef);
@@ -56,11 +52,12 @@ function ConfirmationPageContent() {
             setCustomer(authUserData);
           }
         } else {
-          console.error("Order not found");
-          // Handle order not found (e.g., show error message or redirect)
+          console.error("Order not found with ID:", orderId);
+          setOrder(null); // Explicitly set order to null if not found
         }
       } catch (error) {
         console.error("Error fetching order details:", error);
+        setOrder(null); // Set order to null on error
       } finally {
         setLoadingOrder(false);
       }
@@ -72,7 +69,7 @@ function ConfirmationPageContent() {
   const displayTotalAmount = totalAmountParam ? parseFloat(totalAmountParam).toFixed(2) : (order?.totalAmount?.toFixed(2) || '0.00');
   const displayOrderType = orderTypeParam || order?.orderType || 'N/A';
   const displayCustomerName = customer?.displayName || authUser?.displayName || "Valued Customer";
-  const displayCustomerEmail = customer?.email || authUser?.email || "customer@example.com";
+  const displayCustomerEmail = customer?.email || authUser?.email || "N/A";
 
 
   if (authLoading || loadingOrder) {
@@ -87,7 +84,15 @@ function ConfirmationPageContent() {
   if (!order && !loadingOrder) {
      return (
       <div className="container mx-auto py-12 px-4 max-w-3xl text-center">
-        <Card><CardContent className="p-8"><p className="text-xl text-destructive">Order not found.</p></CardContent></Card>
+        <Card><CardContent className="p-8"><p className="text-xl text-destructive">Order not found. It might still be processing or the ID is incorrect.</p></CardContent></Card>
+      </div>
+    );
+  }
+  
+  if (!order) { // Additional check after loading is complete
+     return (
+      <div className="container mx-auto py-12 px-4 max-w-3xl text-center">
+        <Card><CardContent className="p-8"><p className="text-xl text-destructive">Could not load order details.</p></CardContent></Card>
       </div>
     );
   }
@@ -100,7 +105,7 @@ function ConfirmationPageContent() {
           <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
           <CardTitle className="text-3xl font-lora text-primary">Order Confirmed!</CardTitle>
           <CardDescription className="text-lg">Thank you for your order, {displayCustomerName}. Your delicious meal is being prepared.</CardDescription>
-          <p className="text-sm text-muted-foreground pt-2">Order ID: {orderId}</p>
+          <p className="text-sm text-muted-foreground pt-2">Order ID: {order.orderId}</p>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="border rounded-lg p-6">
@@ -114,7 +119,7 @@ function ConfirmationPageContent() {
               </div>
               <div className="md:text-right">
                 <h3 className="font-semibold text-muted-foreground">Invoice Date:</h3>
-                <p>{currentDate}</p>
+                <p>{new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                 <h3 className="font-semibold text-muted-foreground mt-1">Order Type:</h3>
                 <p>{displayOrderType.charAt(0).toUpperCase() + displayOrderType.slice(1)}</p>
               </div>
@@ -124,10 +129,17 @@ function ConfirmationPageContent() {
 
             <h3 className="font-semibold text-muted-foreground mb-2">Order Summary:</h3>
             <div className="space-y-1 text-sm mb-4">
-              {order?.items.map((item: OrderItem) => (
-                <div key={`${item.id}-${item.type}`} className="flex justify-between">
-                  <span>{item.name} (x{item.quantity})</span>
-                  <span>${(item.price * item.quantity).toFixed(2)}</span>
+              {order.items.map((item: OrderItem) => (
+                <div key={item.cartItemId || item.productId} className="flex justify-between">
+                  <div>
+                    <span>{item.name} (x{item.quantity})</span>
+                    {item.type === 'pizza' && item.selectedAddons && item.selectedAddons.length > 0 && (
+                        <p className="text-xs text-muted-foreground pl-2">
+                            Add-ons: {item.selectedAddons.map(a => a.name).join(', ')}
+                        </p>
+                    )}
+                  </div>
+                  <span>${item.totalPrice.toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -136,7 +148,7 @@ function ConfirmationPageContent() {
             
             <div className="flex justify-between items-center font-bold text-lg mt-2">
               <span>Total Amount Paid:</span>
-              <span className="text-primary">${displayTotalAmount}</span>
+              <span className="text-primary">${order.totalAmount.toFixed(2)}</span>
             </div>
             <p className="text-xs text-muted-foreground text-right mt-1">(inclusive of all taxes)</p>
           </div>
@@ -162,10 +174,12 @@ function ConfirmationPageContent() {
   );
 }
 
-export default function ConfirmationPage(props: ConfirmationPageProps) {
+export default function ConfirmationPage() { // Removed props since ConfirmationPageContent uses hooks
  return (
     <Suspense fallback={<div className="container mx-auto py-12 px-4 max-w-3xl text-center"><Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" /></div>}>
       <ConfirmationPageContent />
     </Suspense>
   );
 }
+
+    

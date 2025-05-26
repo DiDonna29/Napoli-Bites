@@ -1,3 +1,4 @@
+
 // src/app/(auth)/login/page.tsx
 "use client";
 
@@ -6,15 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { LogIn, UserCircle } from "lucide-react";
+import { LogIn, Home } from "lucide-react"; // Added Home icon
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/config";
 import { useToast } from "@/hooks/use-toast";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 
 const loginSchema = z.object({
@@ -26,16 +27,19 @@ type LoginFormInputs = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormInputs>({
     resolver: zodResolver(loginSchema),
   });
 
+  const redirectUrl = searchParams.get('redirect') || '/';
+
   const handleEmailLogin: SubmitHandler<LoginFormInputs> = async (data) => {
     try {
       await signInWithEmailAndPassword(auth, data.email, data.password);
       toast({ title: "Login Successful", description: "Welcome back!" });
-      router.push("/"); // Redirect to homepage or dashboard
+      router.push(redirectUrl); 
     } catch (error: any) {
       console.error("Email login error:", error);
       toast({
@@ -52,7 +56,6 @@ export default function LoginPage() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Check if user document exists, if not, create it
       const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
@@ -68,9 +71,18 @@ export default function LoginPage() {
       }
 
       toast({ title: "Login Successful", description: `Welcome, ${user.displayName || 'User'}!` });
-      router.push("/");
+      router.push(redirectUrl);
     } catch (error: any) {
       console.error("Google login error:", error);
+      // Handle specific Google auth errors more gracefully if needed
+      if (error.code === 'auth/popup-closed-by-user') {
+        toast({
+          title: "Login Cancelled",
+          description: "Google sign-in was cancelled.",
+          variant: "default",
+        });
+        return;
+      }
       toast({
         title: "Google Login Failed",
         description: error.message || "Could not sign in with Google.",
@@ -122,13 +134,22 @@ export default function LoginPage() {
             </Button>
           </CardContent>
         </form>
-        <CardFooter className="text-center text-sm">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-primary hover:underline font-medium">
-            Sign Up
-          </Link>
+        <CardFooter className="flex-col items-center text-sm space-y-2">
+          <div>
+            Don&apos;t have an account?{' '}
+            <Link href="/register" className="text-primary hover:underline font-medium">
+              Sign Up
+            </Link>
+          </div>
+          <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-primary">
+            <Link href="/">
+              <Home className="mr-1 h-3 w-3" /> Return to Homepage
+            </Link>
+          </Button>
         </CardFooter>
       </Card>
     </div>
   );
 }
+
+    
