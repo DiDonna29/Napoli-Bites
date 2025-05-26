@@ -17,8 +17,8 @@ const firebaseConfig = {
 // Basic validation to ensure environment variables are loaded
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   console.error(
-    'Firebase configuration error: API Key or Project ID is missing. ' +
-    'Make sure your .env.local file is set up correctly with NEXT_PUBLIC_FIREBASE_ variables.'
+    'Firebase configuration error: API Key or Project ID is missing from environment variables. ' +
+    'Make sure your .env.local file is set up correctly with NEXT_PUBLIC_FIREBASE_ variables and that the Next.js development server was restarted after changes to .env.local.'
   );
   // Depending on how critical Firebase is at boot, you might throw an error here
   // or allow the app to continue with potentially broken Firebase functionality.
