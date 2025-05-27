@@ -71,7 +71,7 @@ export default function RegisterPage() {
 
   const handleGoogleRegister = async () => {
     const currentOrigin = typeof window !== "undefined" ? window.location.origin : "N/A (server)";
-    const firebaseAuthDomain = auth.app.options.authDomain || "NOT SET";
+    const firebaseAuthDomain = auth.app.options.authDomain || "NOT SET (Firebase SDK not fully initialized or config error)";
     
     console.log(
       "--- DIAGNOSTIC: Google Sign-Up Attempt ---",
