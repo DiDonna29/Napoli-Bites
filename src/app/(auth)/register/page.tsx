@@ -70,10 +70,14 @@ export default function RegisterPage() {
   };
 
   const handleGoogleRegister = async () => {
+    const currentOrigin = typeof window !== "undefined" ? window.location.origin : "N/A";
     const hostname = typeof window !== "undefined" ? window.location.hostname : "N/A";
+    const firebaseAuthDomain = auth.app.options.authDomain || "NOT_CONFIGURED";
     
     console.log("--- GOOGLE REGISTER DIAGNOSTICS ---");
-    console.log("1. Current Hostname:", hostname);
+    console.log("1. Application Domain (Origin):", currentOrigin);
+    console.log("2. Hostname (to add in Firebase):", hostname);
+    console.log("3. Configured Auth Domain in .env.local:", firebaseAuthDomain);
 
     const provider = new GoogleAuthProvider();
     try {

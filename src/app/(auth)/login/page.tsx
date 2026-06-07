@@ -52,12 +52,14 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     const currentOrigin = typeof window !== "undefined" ? window.location.origin : "N/A";
+    const hostname = typeof window !== "undefined" ? window.location.hostname : "N/A";
     const firebaseAuthDomain = auth.app.options.authDomain || "NOT_CONFIGURED";
     
     // Diagnostic log in the browser console
     console.log("--- GOOGLE LOGIN DIAGNOSTICS ---");
-    console.log("1. Application Domain:", currentOrigin);
-    console.log("2. Configured Auth Domain:", firebaseAuthDomain);
+    console.log("1. Application Domain (Origin):", currentOrigin);
+    console.log("2. Hostname (to add in Firebase):", hostname);
+    console.log("3. Configured Auth Domain in .env.local:", firebaseAuthDomain);
 
     const provider = new GoogleAuthProvider();
     try {
@@ -85,7 +87,6 @@ export default function LoginPage() {
       console.error("Google login error:", error);
       
       if (error.code === 'auth/unauthorized-domain') {
-        const hostname = typeof window !== "undefined" ? window.location.hostname : "N/A";
         toast({
           title: "Error: Dominio No Autorizado",
           description: `Debes añadir '${hostname}' a los 'Dominios autorizados' en tu Consola de Firebase > Authentication > Sign-in method.`,
