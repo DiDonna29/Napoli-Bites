@@ -1,5 +1,4 @@
 
-// src/app/(auth)/register/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -60,7 +59,6 @@ export default function RegisterPage() {
       toast({ title: "Registro exitoso", description: "¡Bienvenido a Napoli Bites!" });
       router.push(redirectUrl);
     } catch (error: any) {
-      console.error("Error en registro de email:", error);
       toast({
         title: "Error al registrarse",
         description: error.message || "Ocurrió un error inesperado.",
@@ -70,9 +68,9 @@ export default function RegisterPage() {
   };
 
   const handleGoogleRegister = async () => {
-    const hostname = typeof window !== "undefined" ? window.location.hostname : "N/A";
-    
+    const hostname = typeof window !== "undefined" ? window.location.hostname : "";
     const provider = new GoogleAuthProvider();
+    
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
@@ -97,14 +95,20 @@ export default function RegisterPage() {
       
       router.push(redirectUrl);
     } catch (error: any) {
-      console.error("Error en registro de Google:", error);
-      
       if (error.code === 'auth/unauthorized-domain') {
         toast({
           title: "Dominio No Autorizado",
-          description: `Debes añadir '${hostname}' a los 'Dominios autorizados' en tu Consola de Firebase > Authentication > pestaña 'Settings' o al final de 'Sign-in method'.`,
+          description: (
+            <div className="mt-2 space-y-2">
+              <p>Debes añadir este dominio a tu Consola de Firebase:</p>
+              <code className="block bg-secondary p-2 rounded text-xs break-all font-mono select-all">
+                {hostname}
+              </code>
+              <p className="text-xs">Ruta: Authentication > Settings > Authorized domains</p>
+            </div>
+          ),
           variant: "destructive",
-          duration: 20000,
+          duration: 15000,
         });
       } else {
         toast({

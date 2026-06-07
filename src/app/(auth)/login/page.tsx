@@ -1,5 +1,4 @@
 
-// src/app/(auth)/login/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { LogIn, Home } from "lucide-react";
+import { LogIn, Home, Copy } from "lucide-react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -41,7 +40,6 @@ export default function LoginPage() {
       toast({ title: "Inicio de sesión exitoso", description: "¡Bienvenido de nuevo!" });
       router.push(redirectUrl);
     } catch (error: any) {
-      console.error("Error en login de email:", error);
       toast({
         title: "Error al iniciar sesión",
         description: error.message || "Ocurrió un error inesperado.",
@@ -51,13 +49,9 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    const hostname = typeof window !== "undefined" ? window.location.hostname : "N/A";
-    
-    console.log("--- DIAGNÓSTICO DE INICIO DE SESIÓN CON GOOGLE ---");
-    console.log("1. Hostname actual (añadir a Firebase):", hostname);
-    console.log("2. Auth Domain configurado:", auth.app.options.authDomain);
-
+    const hostname = typeof window !== "undefined" ? window.location.hostname : "";
     const provider = new GoogleAuthProvider();
+    
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
@@ -80,14 +74,20 @@ export default function LoginPage() {
       toast({ title: "Inicio de sesión exitoso", description: `¡Hola, ${user.displayName || 'Usuario'}!` });
       router.push(redirectUrl);
     } catch (error: any) {
-      console.error("Error en login de Google:", error);
-      
       if (error.code === 'auth/unauthorized-domain') {
         toast({
           title: "Dominio No Autorizado",
-          description: `Debes añadir '${hostname}' a los 'Dominios autorizados' en tu Consola de Firebase > Authentication > pestaña 'Settings' o al final de 'Sign-in method'.`,
+          description: (
+            <div className="mt-2 space-y-2">
+              <p>Debes añadir este dominio a tu Consola de Firebase:</p>
+              <code className="block bg-secondary p-2 rounded text-xs break-all font-mono select-all">
+                {hostname}
+              </code>
+              <p className="text-xs">Ruta: Authentication > Settings > Authorized domains</p>
+            </div>
+          ),
           variant: "destructive",
-          duration: 20000,
+          duration: 15000,
         });
       } else {
         toast({
