@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { DRINKS_DATA } from "@/constants/menu";
-import type { Pizza, Drink } from "@/types";
+import type { Pizza, Drink, Dessert } from "@/types";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, Suspense, useEffect } from "react";
@@ -17,7 +18,7 @@ import { ShoppingCart, Utensils, Bike, Package, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
-import { fetchPizzasFromApi } from "@/lib/api";
+import { fetchPizzasFromApi, fetchDessertsFromApi } from "@/lib/api";
 
 function OrderPageContent() {
   const searchParams = useSearchParams();
@@ -32,7 +33,8 @@ function OrderPageContent() {
   const [orderType, setOrderType] = useState(initialOrderType);
   const [address, setAddress] = useState("");
   const [pizzas, setPizzas] = useState<Pizza[]>([]);
-  const [loadingPizzas, setLoadingPizzas] = useState(true);
+  const [desserts, setDesserts] = useState<Dessert[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -46,21 +48,26 @@ function OrderPageContent() {
   }, [user, authLoading, router, toast, searchParams]);
 
   useEffect(() => {
-    async function loadPizzas() {
-      const data = await fetchPizzasFromApi();
-      setPizzas(data);
-      setLoadingPizzas(false);
+    async function loadData() {
+      setLoadingData(true);
+      const [pizzaData, dessertData] = await Promise.all([
+        fetchPizzasFromApi(),
+        fetchDessertsFromApi()
+      ]);
+      setPizzas(pizzaData);
+      setDesserts(dessertData);
+      setLoadingData(false);
     }
-    loadPizzas();
+    loadData();
   }, []);
 
-  const handleAddToCart = (item: Pizza | Drink, type: 'pizza' | 'drink') => {
+  const handleAddToCart = (item: Pizza | Drink | Dessert, type: 'pizza' | 'drink' | 'dessert') => {
     if (type === 'pizza') {
       const pizza = item as Pizza;
       const defaultSize = pizza.sizes[0]; 
       addToCart(pizza, 'pizza', 1, defaultSize, []);
     } else {
-      addToCart(item, 'drink', 1);
+      addToCart(item as any, 'drink', 1);
     }
   };
 
@@ -145,7 +152,7 @@ function OrderPageContent() {
         </CardHeader>
         <CardContent>
           <h3 className="text-2xl font-lora mb-4">Pizzas</h3>
-          {loadingPizzas ? (
+          {loadingData ? (
             <div className="flex justify-center py-10">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
@@ -168,19 +175,45 @@ function OrderPageContent() {
               ))}
             </div>
           )}
-          <Separator className="my-6" />
-          <h3 className="text-2xl font-lora mb-4">Drinks</h3>
+
+          <Separator className="my-8" />
+          <h3 className="text-2xl font-lora mb-4">Postres</h3>
+          {loadingData ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+              {desserts.map(dessert => (
+                <Card key={dessert.id} className="flex flex-col">
+                  <Image src={dessert.imageUrl} alt={dessert.name} data-ai-hint="dessert food" width={250} height={150} className="w-full h-32 object-cover rounded-t-md" />
+                  <CardHeader className="flex-grow p-4">
+                    <CardTitle className="text-md">{dessert.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="py-2 px-4">
+                    <p className="font-semibold">${dessert.price.toFixed(2)}</p>
+                  </CardContent>
+                  <CardFooter className="p-4 pt-0">
+                    <Button size="sm" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleAddToCart(dessert, 'dessert')}>Add to Order</Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <Separator className="my-8" />
+          <h3 className="text-2xl font-lora mb-4">Bebidas</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
              {DRINKS_DATA.map(drink => (
               <Card key={drink.id} className="flex flex-col">
                 <Image src={drink.imageUrl} alt={drink.name} data-ai-hint="drink beverage" width={200} height={200} className="w-full h-32 object-cover rounded-t-md" />
-                <CardHeader className="flex-grow">
+                <CardHeader className="flex-grow p-4">
                   <CardTitle className="text-md">{drink.name}</CardTitle>
                 </CardHeader>
-                 <CardContent className="py-2">
+                 <CardContent className="py-2 px-4">
                   <p className="font-semibold">${drink.price.toFixed(2)}</p>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="p-4 pt-0">
                   <Button size="sm" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleAddToCart(drink, 'drink')}>Add to Order</Button>
                 </CardFooter>
               </Card>
@@ -190,28 +223,16 @@ function OrderPageContent() {
       </Card>
       
       {cartItems.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>3. Order Summary</CardTitle>
+        <Card className="sticky bottom-4 z-40 border-primary shadow-2xl">
+          <CardHeader className="py-4">
+            <CardTitle className="flex justify-between items-center">
+              <span>Resumen de tu Pedido</span>
+              <span className="text-primary">${totalAmount.toFixed(2)}</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            {cartItems.map(item => (
-              <div key={item.cartItemId} className="flex justify-between items-center py-2 border-b">
-                <div>
-                  <p className="font-medium">{item.name} (x{item.quantity})</p>
-                  <p className="text-sm text-muted-foreground">${item.unitPrice.toFixed(2)} each</p>
-                </div>
-                <p className="font-semibold">${item.totalPrice.toFixed(2)}</p>
-              </div>
-            ))}
-            <div className="flex justify-between items-center mt-4 pt-2 border-t">
-              <p className="text-xl font-bold">Subtotal:</p>
-              <p className="text-xl font-bold text-primary">${totalAmount.toFixed(2)}</p>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleProceedToCheckout}>
-                <ShoppingCart className="mr-2 h-5 w-5" /> Proceed to Checkout
+          <CardFooter className="py-4">
+            <Button size="lg" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground text-xl h-14" onClick={handleProceedToCheckout}>
+                <ShoppingCart className="mr-2 h-6 w-6" /> Finalizar Pedido
             </Button>
           </CardFooter>
         </Card>

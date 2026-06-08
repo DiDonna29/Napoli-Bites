@@ -35,6 +35,16 @@ export interface Drink {
   category?: string; // e.g., "Soft Drink", "Alcoholic"
 }
 
+export interface Dessert {
+  id: string;
+  name: string;
+  description?: string;
+  imageUrl: string;
+  imageHint?: string;
+  price: number;
+  category?: string;
+}
+
 export interface Table {
   id: string;
   tableNumber: number;
@@ -68,7 +78,7 @@ export interface OrderItem {
   quantity: number;
   unitPrice: number; // Calculated price for one unit of this item with its options
   totalPrice: number; // unitPrice * quantity
-  type: 'pizza' | 'drink';
+  type: 'pizza' | 'drink' | 'dessert';
   size?: PizzaSizeOption['name']; // Store size name for display
   selectedAddons?: PizzaAddon[]; // Store full addon objects
   imageUrl?: string;
@@ -88,4 +98,3 @@ export interface Order {
   deliveryAddress?: string | null;
   tableId?: string | null;
 }
-
