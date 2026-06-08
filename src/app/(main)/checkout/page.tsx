@@ -1,5 +1,4 @@
 
-// src/app/(main)/checkout/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -59,11 +58,10 @@ function CheckoutPageContent() {
   }, [user, authLoading, router, toast, searchParams, cartItems]);
 
   const handleSimulatePayment = async () => {
-    // Solo requerimos 'user' (la sesión activa). 'userData' (el perfil en BD) es opcional como respaldo.
     if (!user) { 
       toast({ 
         title: "Error", 
-        description: "No se detectó una sesión activa. Por favor, reintenta iniciar sesión.", 
+        description: "No se detectó una sesión activa.", 
         variant: "destructive" 
       });
       return;
@@ -78,7 +76,7 @@ function CheckoutPageContent() {
     try {
       const newOrder: Order = {
         userId: user.uid,
-        // Usamos userData si existe, si no, lo que venga del objeto user de Firebase Auth
+        // Guardamos explícitamente el nombre y email para la factura
         userDisplayName: userData?.displayName || user.displayName || 'Usuario Invitado', 
         userEmail: userData?.email || user.email || 'N/A',
         createdAt: Date.now(),
@@ -97,15 +95,15 @@ function CheckoutPageContent() {
 
       toast({ 
         title: "¡Pedido Realizado!", 
-        description: "El pago simulado fue exitoso y tu pedido ha sido confirmado." 
+        description: "Pago exitoso. Redirigiendo a tu factura..." 
       });
-      router.push(`/confirmation/${orderId}?total=${finalTotal.toFixed(2)}&orderType=${orderType}`);
+      router.push(`/confirmation/${orderId}`);
 
     } catch (error: any) {
       console.error("Error al crear el pedido: ", error);
       toast({ 
         title: "Error en el Pedido", 
-        description: error.message || "No se pudo procesar tu pedido. Reintenta en unos momentos.", 
+        description: error.message || "No se pudo procesar tu pedido.", 
         variant: "destructive" 
       });
       setIsProcessing(false);
@@ -116,41 +114,10 @@ function CheckoutPageContent() {
     return (
       <div className="container mx-auto py-12 px-4 text-center flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p>Cargando checkout...</p>
+        <p>Preparando entorno de pago seguro...</p>
       </div>
     );
   }
-
-  if (!user && !authLoading) {
-     return (
-      <div className="container mx-auto py-12 px-4 text-center flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p>Redirigiendo al login...</p>
-      </div>
-    );
-  }
-  
-  if (cartItems.length === 0 && !authLoading && user) {
-    return (
-      <div className="container mx-auto py-12 px-4 text-center">
-        <Card className="max-w-md mx-auto">
-          <CardHeader>
-            <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <CardTitle>Tu Carrito está Vacío</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CardDescription>Por favor agrega productos antes de proceder al pago.</CardDescription>
-          </CardContent>
-          <CardFooter>
-            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Link href="/order">Ir a la Carta</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
 
   return (
     <div className="container mx-auto py-12 px-4 max-w-2xl">
@@ -161,8 +128,8 @@ function CheckoutPageContent() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <h3 className="text-lg font-semibold mb-2">Detalles del Pedido</h3>
-            <div className="space-y-1 text-sm">
+            <h3 className="text-lg font-semibold mb-2 underline decoration-accent/50 underline-offset-4">Detalles del Pedido</h3>
+            <div className="space-y-1 text-sm bg-muted/30 p-4 rounded-lg">
               <p><strong>Tipo:</strong> {orderType === 'delivery' ? 'A Domicilio' : orderType === 'pickup' ? 'Para Recoger' : 'En Mesa'}</p>
               {orderType === 'delivery' && address && <p><strong>Dirección:</strong> {decodeURIComponent(address)}</p>}
               {orderType === 'dine-in' && tableId && <p><strong>Mesa Reservada:</strong> #{tableId}</p>}
@@ -170,52 +137,45 @@ function CheckoutPageContent() {
           </div>
           <Separator />
           <div>
-             <h3 className="text-lg font-semibold mb-2">Productos</h3>
-            {cartItems.length > 0 ? (
-                cartItems.map(item => (
-                    <div key={item.cartItemId} className="flex justify-between items-start py-2 text-sm border-b last:border-b-0">
-                        <div>
-                            <p>{item.name} (x{item.quantity})</p>
-                            {item.type === 'pizza' && item.selectedAddons && item.selectedAddons.length > 0 && (
-                                <p className="text-xs text-muted-foreground pl-2">
-                                    Extras: {item.selectedAddons.map(a => a.name).join(', ')}
-                                </p>
-                            )}
-                        </div>
-                        <span>${item.totalPrice.toFixed(2)}</span>
+             <h3 className="text-lg font-semibold mb-2">Resumen de Compra</h3>
+            {cartItems.map(item => (
+                <div key={item.cartItemId} className="flex justify-between items-start py-2 text-sm border-b last:border-b-0">
+                    <div>
+                        <p className="font-medium">{item.name} <span className="text-muted-foreground">(x{item.quantity})</span></p>
+                        {item.size && <p className="text-[10px] text-muted-foreground">Tamaño: {item.size}</p>}
                     </div>
-                ))
-            ) : (
-                <p className="text-sm text-muted-foreground">Carrito vacío.</p>
-            )}
+                    <span>${item.totalPrice.toFixed(2)}</span>
+                </div>
+            ))}
           </div>
           <Separator />
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Resumen de Pago</h3>
+          <div className="bg-primary/5 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">Desglose de Pago</h3>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between"><span>Subtotal:</span><span>${subtotal.toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Impuestos ({ (TAX_RATE * 100).toFixed(0) }%):</span><span>${taxAmount.toFixed(2)}</span></div>
-              <Separator className="my-1"/>
-              <div className="flex justify-between font-bold text-lg"><span>Total a Pagar:</span><span className="text-primary">${finalTotal.toFixed(2)}</span></div>
+              <Separator className="my-2"/>
+              <div className="flex justify-between font-bold text-xl"><span>Total a Pagar:</span><span className="text-primary">${finalTotal.toFixed(2)}</span></div>
             </div>
           </div>
            <Separator />
-           <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-4">Serás redirigido para una simulación de pago segura.</p>
+           <div className="text-center space-y-4">
+            <p className="text-sm text-muted-foreground">Haz clic para autorizar la transacción de prueba.</p>
             <Button 
                 size="lg" 
-                className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                className="w-full h-16 text-lg bg-green-600 hover:bg-green-700 text-white transition-all shadow-lg hover:shadow-green-200" 
                 onClick={handleSimulatePayment}
                 disabled={isProcessing || cartItems.length === 0 || !user}
             >
-              {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CreditCard className="mr-2 h-5 w-5"/>}
-              {isProcessing ? "Procesando..." : "Simular Pago"}
+              {isProcessing ? <Loader2 className="mr-2 h-6 w-6 animate-spin" /> : <CreditCard className="mr-2 h-6 w-6"/>}
+              {isProcessing ? "Procesando Transacción..." : "Autorizar Pago Simulado"}
             </Button>
            </div>
         </CardContent>
         <CardFooter>
-            <p className="text-xs text-muted-foreground text-center w-full">
-                Esta es una transacción de prueba. No se realizará ningún cargo real.
+            <p className="text-[10px] text-muted-foreground text-center w-full bg-muted/50 py-2 rounded">
+                Simulador de pasarela de pagos. No se realizará ningún cargo a tarjetas reales. 
+                Al pagar, se generará tu factura oficial de Napoli Bites.
             </p>
         </CardFooter>
       </Card>
