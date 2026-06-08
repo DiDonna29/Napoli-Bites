@@ -4,28 +4,29 @@ import type { Promotion } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { TicketPercent } from 'lucide-react';
+import images from '@/app/lib/placeholder-images.json';
 
 const PROMOTIONS_DATA: Promotion[] = [
   {
     id: 'promo-1',
     title: 'Family Feast Deal',
     description: 'Get 2 Large Pizzas, 4 Drinks, and a side of Garlic Knots for just $39.99!',
-    imageUrl: 'https://placehold.co/600x350.png',
-    imageHint: 'pizza family deal',
+    imageUrl: images.promo_family.url,
+    imageHint: images.promo_family.hint,
   },
   {
     id: 'promo-2',
     title: 'Midweek Madness',
     description: 'Enjoy 20% off any pizza every Wednesday. Dine-in or Takeaway.',
-    imageUrl: 'https://placehold.co/600x350.png',
-    imageHint: 'pizza discount',
+    imageUrl: images.promo_discount.url,
+    imageHint: images.promo_discount.hint,
   },
    {
     id: 'promo-3',
     title: 'Lunch Special',
     description: 'Any Small Pizza + Soft Drink for $10. Weekdays 12 PM - 3 PM.',
-    imageUrl: 'https://placehold.co/600x350.png',
-    imageHint: 'pizza lunch',
+    imageUrl: images.promo_lunch.url,
+    imageHint: images.promo_lunch.hint,
   },
 ];
 

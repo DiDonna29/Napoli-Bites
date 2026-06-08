@@ -1,12 +1,10 @@
 
-// src/components/shared/Header.tsx
 "use client";
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { ShoppingCart, UserCircle, Menu as MenuIcon, LogOut, ShieldCheck } from 'lucide-react'; // Added ShieldCheck
+import { ShoppingCart, UserCircle, Menu as MenuIcon, LogOut, ShieldCheck } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -23,26 +21,27 @@ import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from "@/components/ui/separator";
+import { useTranslation } from '@/context/LanguageContext';
 
 export function Header() {
   const { user, userData, loading } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   const { toast } = useToast();
 
   const navItems = [
-    { href: '/#menu', label: 'Menu' },
-    { href: '/#tables', label: 'Tables' },
-    { href: '/order', label: 'Order Now' },
+    { href: '/#menu', label: t('nav.menu') },
+    { href: '/#tables', label: t('nav.tables') },
+    { href: '/order', label: t('nav.orderNow') },
   ];
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      toast({ title: "Sesión Cerrada", description: "Has salido correctamente." });
       router.push('/'); 
     } catch (error) {
       console.error("Logout error:", error);
-      toast({ title: "Logout Failed", description: "Could not log out. Please try again.", variant: "destructive" });
     }
   };
 
@@ -55,7 +54,6 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
-          {/* Using a simple SVG logo placeholder */}
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" className="h-8 w-8 text-primary">
             <circle cx="50" cy="50" r="45" fill="hsl(var(--primary))" />
             <text x="50" y="62" fontSize="30" fill="hsl(var(--primary-foreground))" textAnchor="middle" fontWeight="bold">NB</text>
@@ -65,11 +63,7 @@ export function Header() {
 
         <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
           {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="transition-colors hover:text-primary"
-            >
+            <Link key={item.label} href={item.href} className="transition-colors hover:text-primary">
               {item.label}
             </Link>
           ))}
@@ -78,7 +72,7 @@ export function Header() {
         <div className="flex items-center space-x-3">
           <LanguageSwitcher />
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/cart" aria-label="Shopping Cart">
+            <Link href="/cart" aria-label="Carrito">
               <ShoppingCart className="h-5 w-5" />
             </Link>
           </Button>
@@ -90,7 +84,7 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={userData?.photoURL || user.photoURL || undefined} alt={userData?.displayName || user.displayName || "User"} />
+                    <AvatarImage src={userData?.photoURL || user.photoURL || undefined} alt="User" />
                     <AvatarFallback>{getInitials(userData?.displayName || user.displayName)}</AvatarFallback>
                   </Avatar>
                 </Button>
@@ -98,28 +92,26 @@ export function Header() {
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{userData?.displayName || user.displayName || "User"}</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {userData?.email || user.email}
-                    </p>
+                    <p className="text-sm font-medium leading-none">{userData?.displayName || user.displayName || "Usuario"}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{userData?.email || user.email}</p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/profile/orders">My Orders</Link>
+                  <Link href="/profile/orders">{t('nav.myOrders')}</Link>
                 </DropdownMenuItem>
                 {userData?.isAdmin && (
                   <DropdownMenuItem asChild>
                     <Link href="/admin/dashboard">
                       <ShieldCheck className="mr-2 h-4 w-4" />
-                      Admin Dashboard
+                      {t('nav.admin')}
                     </Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Log out
+                  {t('nav.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -127,7 +119,7 @@ export function Header() {
             <Button variant="outline" size="sm" asChild className="hidden sm:inline-flex">
               <Link href="/login">
                 <UserCircle className="mr-2 h-4 w-4" />
-                Login
+                {t('nav.login')}
               </Link>
             </Button>
           )}
@@ -137,49 +129,28 @@ export function Header() {
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
                   <MenuIcon className="h-6 w-6" />
-                  <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetContent side="right">
                 <nav className="flex flex-col space-y-4 mt-8">
                   {navItems.map((item) => (
-                     <SheetClose asChild key={item.label}>
-                        <Link
-                        href={item.href}
-                        className="text-lg transition-colors hover:text-primary"
-                        >
-                        {item.label}
-                        </Link>
+                    <SheetClose asChild key={item.label}>
+                      <Link href={item.href} className="text-lg">{item.label}</Link>
                     </SheetClose>
                   ))}
-                  <Separator className="my-2" />
-                  {loading ? (
-                     <p className="text-muted-foreground">Loading user...</p>
-                  ) : user ? (
+                  <Separator />
+                  {user ? (
                     <>
                       <SheetClose asChild>
-                        <Link href="/profile/orders" className="text-lg transition-colors hover:text-primary">My Orders</Link>
+                        <Link href="/profile/orders" className="text-lg">{t('nav.myOrders')}</Link>
                       </SheetClose>
-                      {userData?.isAdmin && (
-                        <SheetClose asChild>
-                           <Link href="/admin/dashboard" className="text-lg transition-colors hover:text-primary flex items-center">
-                             <ShieldCheck className="mr-2 h-5 w-5" /> Admin
-                           </Link>
-                        </SheetClose>
-                      )}
-                       <Button variant="outline" onClick={() => { handleLogout(); const closeButton = document.querySelector('#radix-\\:R1csrrq\\: > button'); if (closeButton instanceof HTMLElement) closeButton.click(); }} > {/* Added SheetClose equivalent for mobile */}
-                        <LogOut className="mr-2 h-5 w-5" />
-                        Logout
-                      </Button>
+                      <Button variant="outline" onClick={handleLogout}>{t('nav.logout')}</Button>
                     </>
                   ) : (
                     <SheetClose asChild>
-                        <Button variant="outline" asChild>
-                            <Link href="/login">
-                            <UserCircle className="mr-2 h-5 w-5" />
-                            Login / Register
-                            </Link>
-                        </Button>
+                      <Button variant="outline" asChild>
+                        <Link href="/login">{t('nav.login')}</Link>
+                      </Button>
                     </SheetClose>
                   )}
                 </nav>

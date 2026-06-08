@@ -1,5 +1,3 @@
-
-// src/app/(main)/cart/page.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -10,8 +8,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/hooks/useCart";
 import { useRouter } from "next/navigation";
+import images from '@/app/lib/placeholder-images.json';
 
-const TAX_RATE = 0.1; // Example 10% tax
+const TAX_RATE = 0.1;
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, getCartSubtotal, clearCart } = useCart();
@@ -23,18 +22,9 @@ export default function CartPage() {
 
   const handleProceedToCheckout = () => {
     if (cartItems.length === 0) {
-      // This should ideally not happen if button is disabled, but as a fallback
       alert("Your cart is empty. Please add items to your order.");
       return;
     }
-    // The order type and address are not collected on this page.
-    // They are collected on the /order page or passed as params.
-    // For checkout, we primarily need the cart items.
-    // The /checkout page will pick up cart from localStorage (managed by useCart).
-    // It might need to know the order type (delivery, pickup, dine-in) to show relevant info.
-    // For now, let's assume default flow from here goes to a generic checkout.
-    // Or, we could redirect to /order page if more info is needed.
-    // Let's push directly to checkout, assuming order page context is set or not strictly needed for checkout initiation here.
     router.push('/checkout'); 
   };
 
@@ -64,7 +54,7 @@ export default function CartPage() {
             {cartItems.map(item => (
               <Card key={item.cartItemId} className="flex items-center p-4 shadow-md">
                 <Image
-                  src={item.imageUrl || "https://placehold.co/100x100.png"}
+                  src={item.imageUrl || images.cart_fallback.url}
                   alt={item.name}
                   width={80}
                   height={80}
@@ -110,10 +100,6 @@ export default function CartPage() {
                 <span>Estimated Tax ({ (TAX_RATE * 100).toFixed(0) }%)</span>
                 <span>${tax.toFixed(2)}</span>
               </div>
-              {/* <div className="flex justify-between text-sm">
-                <span>Delivery Fee</span>
-                <span className="text-green-600">Free</span> 
-              </div> */}
               <Separator />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>

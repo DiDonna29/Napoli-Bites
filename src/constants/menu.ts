@@ -1,4 +1,5 @@
 import type { Pizza, Drink, PizzaAddon, PizzaSizeOption } from '@/types';
+import images from '@/app/lib/placeholder-images.json';
 
 export const PIZZA_ADDONS: PizzaAddon[] = [
   { id: 'addon-1', name: 'Extra Cheese', price: 2.00 },
@@ -11,18 +12,17 @@ export const PIZZA_ADDONS: PizzaAddon[] = [
 
 export const PIZZA_SIZES: PizzaSizeOption[] = [
   { id: 'size-s', name: 'Small (10")', price: 0, diameterInches: 10 },
-  { id: 'size-m', name: 'Medium (12")', price: 3.00, diameterInches: 12 }, // Additional cost for medium
-  { id: 'size-l', name: 'Large (14")', price: 6.00, diameterInches: 14 }, // Additional cost for large
+  { id: 'size-m', name: 'Medium (12")', price: 3.00, diameterInches: 12 },
+  { id: 'size-l', name: 'Large (14")', price: 6.00, diameterInches: 14 },
 ];
-
 
 export const PIZZAS_DATA: Pizza[] = [
   {
     id: 'pizza-1',
     name: 'Margherita',
     description: 'Classic delight with San Marzano tomatoes, mozzarella fior di latte, fresh basil, and a drizzle of olive oil.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza margherita',
+    imageUrl: images.pizza_margherita.url,
+    imageHint: images.pizza_margherita.hint,
     basePrice: 12.99,
     sizes: PIZZA_SIZES,
     availableAddons: PIZZA_ADDONS,
@@ -32,8 +32,8 @@ export const PIZZAS_DATA: Pizza[] = [
     id: 'pizza-2',
     name: 'Pepperoni',
     description: 'A crowd-pleaser with generous layer of spicy pepperoni and mozzarella cheese.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza pepperoni',
+    imageUrl: images.pizza_pepperoni.url,
+    imageHint: images.pizza_pepperoni.hint,
     basePrice: 14.99,
     sizes: PIZZA_SIZES,
     availableAddons: PIZZA_ADDONS,
@@ -43,8 +43,8 @@ export const PIZZAS_DATA: Pizza[] = [
     id: 'pizza-3',
     name: 'Quattro Formaggi',
     description: 'A cheese lover’s dream with a blend of four Italian cheeses: mozzarella, gorgonzola, ricotta, and parmigiano.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza cheese',
+    imageUrl: images.pizza_cheese.url,
+    imageHint: images.pizza_cheese.hint,
     basePrice: 15.99,
     sizes: PIZZA_SIZES,
     availableAddons: PIZZA_ADDONS,
@@ -54,8 +54,8 @@ export const PIZZAS_DATA: Pizza[] = [
     id: 'pizza-4',
     name: 'Capricciosa',
     description: 'A rich pizza with tomato sauce, mozzarella, mushrooms, artichokes, cooked ham, olives, and basil.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza varied',
+    imageUrl: images.pizza_varied.url,
+    imageHint: images.pizza_varied.hint,
     basePrice: 16.99,
     sizes: PIZZA_SIZES,
     availableAddons: PIZZA_ADDONS,
@@ -64,8 +64,8 @@ export const PIZZAS_DATA: Pizza[] = [
     id: 'pizza-5',
     name: 'Diavola',
     description: 'Spicy salami, chili flakes, and mozzarella cheese for those who like it hot.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza spicy',
+    imageUrl: images.pizza_spicy.url,
+    imageHint: images.pizza_spicy.hint,
     basePrice: 15.50,
     sizes: PIZZA_SIZES,
     availableAddons: PIZZA_ADDONS,
@@ -75,8 +75,8 @@ export const PIZZAS_DATA: Pizza[] = [
     id: 'pizza-6',
     name: 'Vegetariana',
     description: 'Loaded with fresh seasonal vegetables like bell peppers, zucchini, eggplant, and olives over a tomato and mozzarella base.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza vegetarian',
+    imageUrl: images.pizza_vegetarian.url,
+    imageHint: images.pizza_vegetarian.hint,
     basePrice: 14.50,
     sizes: PIZZA_SIZES,
     availableAddons: PIZZA_ADDONS,
@@ -86,8 +86,8 @@ export const PIZZAS_DATA: Pizza[] = [
     id: 'pizza-7',
     name: 'Prosciutto e Funghi',
     description: 'A classic combination of cooked ham and savory mushrooms on a bed of mozzarella and tomato sauce.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza ham mushroom',
+    imageUrl: images.pizza_ham_mushroom.url,
+    imageHint: images.pizza_ham_mushroom.hint,
     basePrice: 15.99,
     sizes: PIZZA_SIZES,
     availableAddons: PIZZA_ADDONS,
@@ -96,8 +96,8 @@ export const PIZZAS_DATA: Pizza[] = [
     id: 'pizza-8',
     name: 'Marinara',
     description: 'Simple yet flavorful with San Marzano tomatoes, garlic, oregano, and extra virgin olive oil (no cheese).',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza marinara',
+    imageUrl: images.pizza_marinara.url,
+    imageHint: images.pizza_marinara.hint,
     basePrice: 10.99,
     sizes: PIZZA_SIZES,
     availableAddons: PIZZA_ADDONS,
@@ -107,8 +107,8 @@ export const PIZZAS_DATA: Pizza[] = [
     id: 'pizza-9',
     name: 'Napolitana',
     description: 'The true taste of Naples: San Marzano tomatoes, mozzarella di bufala, fresh basil, and olive oil.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza naples',
+    imageUrl: images.pizza_naples.url,
+    imageHint: images.pizza_naples.hint,
     basePrice: 17.99,
     sizes: PIZZA_SIZES,
     availableAddons: PIZZA_ADDONS,
@@ -117,11 +117,11 @@ export const PIZZAS_DATA: Pizza[] = [
     id: 'pizza-10',
     name: 'Calzone Classico',
     description: 'A folded pizza stuffed with ricotta, mozzarella, salami, and cooked ham, baked to perfection.',
-    imageUrl: 'https://placehold.co/600x400.png',
-    imageHint: 'pizza calzone',
+    imageUrl: images.pizza_calzone.url,
+    imageHint: images.pizza_calzone.hint,
     basePrice: 16.50,
-    sizes: [{ id: 'size-calzone', name: 'Standard', price: 0 }], // Calzones usually one size
-    availableAddons: PIZZA_ADDONS.slice(0,3), // Limited addons for calzone
+    sizes: [{ id: 'size-calzone', name: 'Standard', price: 0 }],
+    availableAddons: PIZZA_ADDONS.slice(0,3),
   },
 ];
 
@@ -129,8 +129,8 @@ export const DRINKS_DATA: Drink[] = [
   {
     id: 'drink-1',
     name: 'Coca-Cola',
-    imageUrl: 'https://placehold.co/300x300.png',
-    imageHint: 'drink soda',
+    imageUrl: images.drink_soda.url,
+    imageHint: images.drink_soda.hint,
     price: 2.50,
     volume: '330ml Can',
     category: 'Soft Drink',
@@ -138,8 +138,8 @@ export const DRINKS_DATA: Drink[] = [
   {
     id: 'drink-2',
     name: 'San Pellegrino Sparkling Water',
-    imageUrl: 'https://placehold.co/300x300.png',
-    imageHint: 'drink water',
+    imageUrl: images.drink_water.url,
+    imageHint: images.drink_water.hint,
     price: 3.00,
     volume: '500ml Bottle',
     category: 'Water',
@@ -147,8 +147,8 @@ export const DRINKS_DATA: Drink[] = [
   {
     id: 'drink-3',
     name: 'Peroni Nastro Azzurro',
-    imageUrl: 'https://placehold.co/300x300.png',
-    imageHint: 'drink beer',
+    imageUrl: images.drink_beer.url,
+    imageHint: images.drink_beer.hint,
     price: 5.00,
     volume: '330ml Bottle',
     category: 'Beer',
@@ -157,8 +157,8 @@ export const DRINKS_DATA: Drink[] = [
     id: 'drink-4',
     name: 'Chianti Classico (Glass)',
     description: 'A smooth red wine from Tuscany.',
-    imageUrl: 'https://placehold.co/300x300.png',
-    imageHint: 'drink wine',
+    imageUrl: images.drink_wine.url,
+    imageHint: images.drink_wine.hint,
     price: 7.00,
     volume: '150ml Glass',
     category: 'Wine',
@@ -166,8 +166,8 @@ export const DRINKS_DATA: Drink[] = [
   {
     id: 'drink-5',
     name: 'Fresh Orange Juice',
-    imageUrl: 'https://placehold.co/300x300.png',
-    imageHint: 'drink juice',
+    imageUrl: images.drink_juice.url,
+    imageHint: images.drink_juice.hint,
     price: 4.00,
     volume: '300ml Glass',
     category: 'Juice',
