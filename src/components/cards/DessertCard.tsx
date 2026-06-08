@@ -16,11 +16,7 @@ export function DessertCard({ dessert }: DessertCardProps) {
   const { addToCart } = useCart();
 
   const handleAddToCart = () => {
-    // In useCart, we need to handle desserts. For now, let's treat it similar to a drink but with 'dessert' type.
-    // We'll update useCart hook in a following change if necessary, 
-    // but the generic structure should work if we pass 'drink' or similar, 
-    // though better to add 'dessert' to the union.
-    addToCart(dessert as any, 'drink', 1);
+    addToCart(dessert, 'dessert', 1);
   };
 
   return (
