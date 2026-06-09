@@ -1,0 +1,66 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "isAdmin": { "type": "boolean" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer pizza order",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userDisplayName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "status": { "type": "string", "enum": ["confirmed", "preparing", "out-for-delivery", "delivered", "cancelled"] },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "orderType": { "type": "string" },
+        "deliveryAddress": { "type": "string" },
+        "tableId": { "type": "string" }
+      },
+      "required": ["userId", "createdAt", "status", "items", "totalAmount", "orderType"]
+    },
+    "Table": {
+      "title": "Restaurant Table",
+      "description": "Table availability and capacity",
+      "type": "object",
+      "properties": {
+        "tableNumber": { "type": "number" },
+        "capacity": { "type": "number" },
+        "status": { "type": "string", "enum": ["available", "occupied", "reserved"] },
+        "availabilityTime": { "type": "string" }
+      },
+      "required": ["tableNumber", "capacity", "status"]
+    }
+  },
+  "auth": {
+    "providers": ["google.com", "password"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile documents"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Collection of all customer orders"
+    },
+    "/tables/{tableId}": {
+      "schema": { "$ref": "#/entities/Table" },
+      "description": "Status of restaurant tables"
+    }
+  }
+}
