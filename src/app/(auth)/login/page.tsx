@@ -81,12 +81,13 @@ function LoginForm() {
       router.push(redirectUrl);
     } catch (error: any) {
       console.error("Login Error Code:", error.code);
-      if (error.code === 'auth/unauthorized-domain') {
-        setUnauthorizedDomain(hostname);
-      } else if (error.code === 'auth/popup-closed-by-user') {
+      // Forzamos mostrar el aviso de dominio si falla Google, ya que casi siempre es la causa en Workstations
+      setUnauthorizedDomain(hostname);
+      
+      if (error.code === 'auth/popup-closed-by-user') {
         toast({
           title: "Ventana Cerrada",
-          description: "La ventana de Google se cerró. Esto suele pasar si el dominio no está autorizado o si tienes un bloqueador de popups.",
+          description: "La ventana de Google se cerró. Revisa el aviso de 'Dominio No Autorizado' arriba.",
           variant: "destructive",
         });
       } else {
@@ -113,18 +114,22 @@ function LoginForm() {
         </CardHeader>
         <CardContent className="space-y-6">
           {unauthorizedDomain && (
-            <Alert variant="destructive" className="bg-destructive/10 border-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle className="font-bold">Dominio No Autorizado</AlertTitle>
-              <AlertDescription className="space-y-3">
-                <p className="text-xs">Para habilitar el acceso desde esta ventana, añade este dominio en tu Consola de Firebase:</p>
-                <div className="flex items-center gap-2 bg-background p-2 rounded border border-destructive/20">
-                  <code className="text-[10px] break-all flex-grow font-mono">{unauthorizedDomain}</code>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyToClipboard(unauthorizedDomain)}>
-                    <Copy className="h-3 w-3" />
+            <Alert variant="destructive" className="bg-destructive/10 border-destructive border-2 animate-in fade-in zoom-in duration-300">
+              <AlertTriangle className="h-5 w-5" />
+              <AlertTitle className="font-bold text-base">¿Falla el login con Google?</AlertTitle>
+              <AlertDescription className="space-y-4">
+                <p className="text-sm">Debes autorizar este dominio en tu Consola de Firebase para que Google funcione:</p>
+                <div className="flex items-center gap-2 bg-background p-3 rounded-md border border-destructive/30 shadow-inner">
+                  <code className="text-xs break-all flex-grow font-mono font-bold text-destructive">{unauthorizedDomain}</code>
+                  <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={() => copyToClipboard(unauthorizedDomain)}>
+                    <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-[10px] font-semibold">Ruta: Authentication > Settings > Authorized domains</p>
+                <div className="text-[11px] space-y-1 bg-white/50 p-2 rounded border border-destructive/10">
+                  <p><strong>Paso 1:</strong> Ve a la Consola de Firebase.</p>
+                  <p><strong>Paso 2:</strong> Authentication &gt; Settings &gt; Authorized domains.</p>
+                  <p><strong>Paso 3:</strong> Clic en 'Agregar dominio' y pega el texto de arriba.</p>
+                </div>
               </AlertDescription>
             </Alert>
           )}

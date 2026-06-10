@@ -101,12 +101,13 @@ export default function RegisterPage() {
       
       router.push(redirectUrl);
     } catch (error: any) {
-      if (error.code === 'auth/unauthorized-domain') {
-        setUnauthorizedDomain(hostname);
-      } else if (error.code === 'auth/popup-closed-by-user') {
+      // Forzamos el aviso de dominio si falla el popup de Google
+      setUnauthorizedDomain(hostname);
+      
+      if (error.code === 'auth/popup-closed-by-user') {
         toast({
           title: "Ventana Cerrada",
-          description: "La ventana se cerró. Asegúrate de autorizar este dominio en la consola de Firebase.",
+          description: "La ventana se cerró antes de completar. Asegúrate de añadir el dominio en Firebase.",
           variant: "destructive",
         });
       } else {
@@ -133,18 +134,20 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {unauthorizedDomain && (
-            <Alert variant="destructive" className="bg-destructive/10 border-destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle className="font-bold">Dominio No Autorizado</AlertTitle>
-              <AlertDescription className="space-y-3">
-                <p className="text-xs">Para habilitar el registro desde aquí, añade este dominio en Firebase:</p>
-                <div className="flex items-center gap-2 bg-background p-2 rounded border border-destructive/20">
-                  <code className="text-[10px] break-all flex-grow font-mono">{unauthorizedDomain}</code>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyToClipboard(unauthorizedDomain)}>
-                    <Copy className="h-3 w-3" />
+            <Alert variant="destructive" className="bg-destructive/10 border-destructive border-2 animate-in fade-in zoom-in duration-300">
+              <AlertTriangle className="h-5 w-5" />
+              <AlertTitle className="font-bold text-base">Error con Google</AlertTitle>
+              <AlertDescription className="space-y-4">
+                <p className="text-sm">Para que Google funcione en esta ventana, debes añadir este dominio en tu Consola de Firebase:</p>
+                <div className="flex items-center gap-2 bg-background p-3 rounded-md border border-destructive/30 shadow-inner">
+                  <code className="text-xs break-all flex-grow font-mono font-bold text-destructive">{unauthorizedDomain}</code>
+                  <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={() => copyToClipboard(unauthorizedDomain)}>
+                    <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-[10px] font-semibold">Ruta: Authentication > Settings > Authorized domains</p>
+                <div className="text-[11px] space-y-1 bg-white/50 p-2 rounded border border-destructive/10">
+                  <p><strong>Configuración:</strong> Authentication &gt; Settings &gt; Authorized domains.</p>
+                </div>
               </AlertDescription>
             </Alert>
           )}
