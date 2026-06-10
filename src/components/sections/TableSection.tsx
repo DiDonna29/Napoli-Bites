@@ -1,10 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase/config';
-import { collection, onSnapshot, query, orderBy, setDoc, doc, getDocs } from 'firebase/firestore';
-import { TABLES_DATA } from '@/constants/tables';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { TableCard } from '@/components/cards/TableCard';
 import type { Table } from '@/types';
 import { Loader2 } from 'lucide-react';
@@ -15,21 +13,8 @@ export function TableSection() {
 
   useEffect(() => {
     const tablesRef = collection(db, "tables");
-    
-    // Función para inicializar mesas si no existen
-    const seedTablesIfEmpty = async () => {
-      const snapshot = await getDocs(tablesRef);
-      if (snapshot.empty) {
-        console.log("Seeding tables to Firestore...");
-        for (const table of TABLES_DATA) {
-          await setDoc(doc(db, "tables", table.id), table);
-        }
-      }
-    };
-
-    seedTablesIfEmpty();
-
     const q = query(tablesRef, orderBy("tableNumber", "asc"));
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetchedTables: Table[] = [];
       snapshot.forEach((doc) => {
@@ -58,6 +43,10 @@ export function TableSection() {
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
+        ) : tables.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            No hay mesas configuradas en el sistema.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
