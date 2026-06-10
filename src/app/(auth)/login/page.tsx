@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { LogIn, Home, Copy, AlertTriangle, RefreshCcw, Info } from "lucide-react";
+import { LogIn, Home, Copy, AlertTriangle, RefreshCcw, Info, ExternalLink } from "lucide-react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,7 +16,7 @@ import { auth, db } from "@/lib/firebase/config";
 import { useToast } from "@/hooks/use-toast";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import type { UserProfile } from "@/types";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const loginSchema = z.object({
@@ -59,7 +59,7 @@ function LoginForm() {
     const hostname = typeof window !== "undefined" ? window.location.hostname : "";
     const provider = new GoogleAuthProvider();
     
-    // Configuración para forzar la selección de cuenta y mitigar bloqueos de pop-ups
+    // Configuración para forzar la selección de cuenta
     provider.setCustomParameters({ prompt: 'select_account' });
     
     try {
@@ -91,7 +91,7 @@ function LoginForm() {
         setUnauthorizedDomain(hostname);
         toast({
           title: "Error de Conexión / Dominio",
-          description: "Revisa las instrucciones en pantalla.",
+          description: "La ventana de Google falló. Revisa las instrucciones en el recuadro rojo.",
           variant: "destructive",
         });
       } else {
@@ -118,28 +118,34 @@ function LoginForm() {
         </CardHeader>
         <CardContent className="space-y-6">
           {showTroubleshooting && (
-            <Alert variant="destructive" className="bg-destructive/5 border-destructive/20">
+            <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 animate-in fade-in duration-500">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle className="text-sm font-bold">¿Problemas con Google?</AlertTitle>
+              <AlertTitle className="text-sm font-bold">¿Problemas con el Pop-up?</AlertTitle>
               <AlertDescription className="text-[11px] space-y-2 mt-2">
-                <p>1. <strong>Ventana colgada:</strong> Asegúrate de que el dominio esté en Firebase.</p>
-                <p>2. <strong>Cookies:</strong> Tu navegador debe permitir cookies de terceros.</p>
-                <div className="flex items-center gap-2 bg-background p-2 rounded border">
-                  <code className="truncate flex-grow">{unauthorizedDomain || "Copiando..."}</code>
+                <p>1. <strong>Dominio no autorizado:</strong> Asegúrate de que este dominio esté en Firebase Auth:</p>
+                <div className="flex items-center gap-2 bg-background p-2 rounded border my-1">
+                  <code className="truncate flex-grow">{unauthorizedDomain || "Detectando..."}</code>
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyToClipboard(unauthorizedDomain || window.location.hostname)}>
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
+                <p>2. <strong>Cookies:</strong> Ve a Configuración de tu navegador y permite <strong>"Cookies de terceros"</strong>.</p>
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Tips para Workstation */}
-          <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-md border border-blue-200 dark:border-blue-800 flex gap-3">
-             <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-             <div className="text-[10px] text-blue-700 dark:text-blue-300">
-                <p className="font-bold mb-1">Nota para Modo Incógnito:</p>
-                <p>Si ves un error 401, primero debes loguearte en <strong>console.cloud.google.com</strong> en esta misma pestaña para que la Workstation te deje pasar.</p>
+          {/* Tips críticos para Workstations */}
+          <div className="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-lg border border-blue-200 dark:border-blue-800 space-y-3">
+             <div className="flex gap-2 items-start">
+                <Info className="h-5 w-5 text-blue-500 shrink-0" />
+                <h4 className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase">Modo de Rescate Workstation</h4>
+             </div>
+             <div className="text-[10px] text-blue-700 dark:text-blue-400 space-y-2">
+                <p><strong>A) ¿Error 401 en Incógnito?</strong></p>
+                <p>Primero abre <Link href="https://console.cloud.google.com" target="_blank" className="underline font-bold flex inline-flex items-center gap-1">console.cloud.google.com <ExternalLink className="h-2 w-2"/></Link> en otra pestaña de esta misma ventana e inicia sesión.</p>
+                
+                <p><strong>B) ¿Pop-up en blanco?</strong></p>
+                <p>Firebase requiere que el dominio termine en <code>.firebaseapp.com</code> para procesar el login. Si estás en una Workstation, el navegador a veces bloquea el retorno.</p>
              </div>
           </div>
 
@@ -186,7 +192,7 @@ function LoginForm() {
               <Link href="/"><Home className="mr-1 h-4 w-4" /> Inicio</Link>
             </Button>
             <Button variant="ghost" size="sm" onClick={() => window.location.reload()} className="text-muted-foreground">
-              <RefreshCcw className="mr-1 h-3 w-3" /> Refrescar
+              <RefreshCcw className="mr-1 h-3 w-3" /> Refrescar Página
             </Button>
           </div>
         </CardFooter>

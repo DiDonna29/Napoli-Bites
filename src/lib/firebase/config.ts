@@ -35,7 +35,7 @@ if (missingConfigKeys.length > 0) {
 
 // Advertencia específica para Cloud Workstations
 if (typeof window !== "undefined" && firebaseConfig.authDomain?.includes("cloudworkstations.dev")) {
-  console.warn("ADVERTENCIA: Tu authDomain parece estar configurado con la URL de la Workstation. Para que Google Login funcione, DEBE ser el dominio original de Firebase (ej: proyecto.firebaseapp.com).");
+  console.warn("ADVERTENCIA CRÍTICA: Tu authDomain está configurado con la URL de la Workstation. Esto CAUSARÁ que el login de Google se quede colgado o falle. Por favor, usa el dominio original de Firebase (ej: tu-proyecto.firebaseapp.com) en tu archivo .env.local.");
 }
 
 let app: FirebaseApp;

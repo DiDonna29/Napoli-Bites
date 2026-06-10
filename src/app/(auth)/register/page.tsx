@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { UserPlus, Home, Copy, AlertTriangle, RefreshCcw, Info } from "lucide-react";
+import { UserPlus, Home, Copy, AlertTriangle, RefreshCcw, Info, ExternalLink } from "lucide-react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -103,12 +103,13 @@ function RegisterForm() {
       
       router.push(redirectUrl);
     } catch (error: any) {
+      console.error("Auth Error Code:", error.code);
       setShowTroubleshooting(true);
       setUnauthorizedDomain(hostname);
       
       toast({
         title: "Error de Google",
-        description: "Revisa las instrucciones para Workstations.",
+        description: "Revisa las instrucciones de red para Workstations.",
         variant: "destructive",
       });
     }
@@ -130,25 +131,25 @@ function RegisterForm() {
           {showTroubleshooting && (
             <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 animate-in fade-in duration-500">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle className="text-sm font-bold">Instrucciones de Red</AlertTitle>
+              <AlertTitle className="text-sm font-bold">Guía de Configuración</AlertTitle>
               <AlertDescription className="text-[10px] space-y-2 mt-2">
-                <p>1. <strong>Habilitar Cookies:</strong> Ve a Configuración &gt; Privacidad y permite cookies de terceros.</p>
-                <p>2. <strong>Dominio Firebase:</strong> Verifica que este dominio esté autorizado.</p>
-                <div className="flex items-center gap-2 bg-background p-2 rounded border">
+                <p>1. <strong>Dominio Firebase:</strong> Verifica que este dominio esté autorizado:</p>
+                <div className="flex items-center gap-2 bg-background p-2 rounded border my-1">
                   <code className="truncate flex-grow">{unauthorizedDomain || window.location.hostname}</code>
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyToClipboard(unauthorizedDomain || window.location.hostname)}>
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
+                <p>2. <strong>Modo Incógnito:</strong> Si ves un error 401, logueate primero en <Link href="https://console.cloud.google.com" target="_blank" className="underline font-bold inline-flex items-center gap-1">Cloud Console <ExternalLink className="h-2 w-2"/></Link>.</p>
               </AlertDescription>
             </Alert>
           )}
 
-          <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-md border border-amber-200 dark:border-amber-800 flex gap-3">
+          <div className="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-md border border-amber-200 dark:border-amber-800 flex gap-3">
              <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-             <div className="text-[10px] text-amber-700 dark:text-amber-300">
-                <p className="font-bold mb-1">¿Error 401 en incógnito?</p>
-                <p>Debes loguearte primero en <strong>console.cloud.google.com</strong> en esta misma ventana antes de abrir la app.</p>
+             <div className="text-[10px] text-amber-700 dark:text-amber-300 space-y-1">
+                <p className="font-bold">Nota para Desarrolladores:</p>
+                <p>Si el pop-up de Google se queda colgado, asegúrate de permitir <strong>"Cookies de terceros"</strong> en tu navegador.</p>
              </div>
           </div>
 
