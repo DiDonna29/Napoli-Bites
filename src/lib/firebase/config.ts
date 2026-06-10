@@ -31,9 +31,11 @@ if (missingConfigKeys.length > 0) {
   const errorMessage = `Faltan variables de entorno de Firebase: ${missingConfigKeys.join(', ')}. Verifica tu archivo .env.local y reinicia el servidor.`;
   console.error("--- ERROR DE CONFIGURACIÓN DE FIREBASE ---");
   console.error(errorMessage);
-  if (typeof window !== "undefined") {
-    console.warn("Asegúrate de haber copiado el archivo .env.example a .env.local y haber llenado los valores reales.");
-  }
+}
+
+// Advertencia específica para Cloud Workstations
+if (typeof window !== "undefined" && firebaseConfig.authDomain?.includes("cloudworkstations.dev")) {
+  console.warn("ADVERTENCIA: Tu authDomain parece estar configurado con la URL de la Workstation. Para que Google Login funcione, DEBE ser el dominio original de Firebase (ej: proyecto.firebaseapp.com).");
 }
 
 let app: FirebaseApp;

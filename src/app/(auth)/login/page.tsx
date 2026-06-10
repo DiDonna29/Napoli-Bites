@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { LogIn, Home, Copy, AlertTriangle } from "lucide-react";
+import { LogIn, Home, Copy, AlertTriangle, RefreshCcw } from "lucide-react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,7 +16,7 @@ import { auth, db } from "@/lib/firebase/config";
 import { useToast } from "@/hooks/use-toast";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import type { UserProfile } from "@/types";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const loginSchema = z.object({
@@ -59,6 +59,7 @@ function LoginForm() {
     const provider = new GoogleAuthProvider();
     
     try {
+      // Intentamos el login
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
@@ -81,13 +82,13 @@ function LoginForm() {
       router.push(redirectUrl);
     } catch (error: any) {
       console.error("Login Error Code:", error.code);
-      // Forzamos mostrar el aviso de dominio si falla Google, ya que casi siempre es la causa en Workstations
-      setUnauthorizedDomain(hostname);
       
-      if (error.code === 'auth/popup-closed-by-user') {
+      // Si el error es popup-closed, es muy probable que el dominio siga bloqueado o necesite refrescar
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/unauthorized-domain') {
+        setUnauthorizedDomain(hostname);
         toast({
-          title: "Ventana Cerrada",
-          description: "La ventana de Google se cerró. Revisa el aviso de 'Dominio No Autorizado' arriba.",
+          title: "Error de Autorización",
+          description: "Si ya agregaste el dominio en Firebase, por favor refresca la página o revisa tu conexión.",
           variant: "destructive",
         });
       } else {
@@ -116,19 +117,24 @@ function LoginForm() {
           {unauthorizedDomain && (
             <Alert variant="destructive" className="bg-destructive/10 border-destructive border-2 animate-in fade-in zoom-in duration-300">
               <AlertTriangle className="h-5 w-5" />
-              <AlertTitle className="font-bold text-base">¿Falla el login con Google?</AlertTitle>
+              <AlertTitle className="font-bold text-base">¿Sigues teniendo problemas?</AlertTitle>
               <AlertDescription className="space-y-4">
-                <p className="text-sm">Debes autorizar este dominio en tu Consola de Firebase para que Google funcione:</p>
-                <div className="flex items-center gap-2 bg-background p-3 rounded-md border border-destructive/30 shadow-inner">
-                  <code className="text-xs break-all flex-grow font-mono font-bold text-destructive">{unauthorizedDomain}</code>
-                  <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={() => copyToClipboard(unauthorizedDomain)}>
-                    <Copy className="h-4 w-4" />
-                  </Button>
+                <p className="text-sm">Si ya agregaste el dominio y sigue fallando:</p>
+                <div className="text-[11px] space-y-2 bg-white/50 p-2 rounded border border-destructive/10">
+                  <p><strong>1. Espera 1 minuto:</strong> Los cambios en Google pueden tardar un poco en activarse.</p>
+                  <p><strong>2. Refresca la app:</strong> Usa el botón de abajo para recargar la aplicación.</p>
+                  <p><strong>3. Incógnito:</strong> Prueba abrir esta ventana en modo incógnito.</p>
                 </div>
-                <div className="text-[11px] space-y-1 bg-white/50 p-2 rounded border border-destructive/10">
-                  <p><strong>Paso 1:</strong> Ve a la Consola de Firebase.</p>
-                  <p><strong>Paso 2:</strong> Authentication &gt; Settings &gt; Authorized domains.</p>
-                  <p><strong>Paso 3:</strong> Clic en 'Agregar dominio' y pega el texto de arriba.</p>
+                <div className="flex flex-col gap-2">
+                   <div className="flex items-center gap-2 bg-background p-2 rounded-md border border-destructive/30">
+                    <code className="text-[10px] break-all flex-grow font-mono font-bold text-destructive">{unauthorizedDomain}</code>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyToClipboard(unauthorizedDomain)}>
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => window.location.reload()}>
+                    <RefreshCcw className="mr-2 h-3 w-3" /> Refrescar Página
+                  </Button>
                 </div>
               </AlertDescription>
             </Alert>

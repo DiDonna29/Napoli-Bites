@@ -6,11 +6,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ListOrdered, FileText, Loader2, AlertCircle } from "lucide-react";
+import { ListOrdered, FileText, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { db } from "@/lib/firebase/config";
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { Order } from "@/types";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -25,44 +25,43 @@ export default function OrderHistoryPage() {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [error, setError] = useState(false);
 
+  const fetchOrders = useCallback(async () => {
+    if (!user) return;
+    
+    setLoadingOrders(true);
+    setError(false);
+    try {
+      const ordersRef = collection(db, "orders");
+      const q = query(ordersRef, where("userId", "==", user.uid));
+      const querySnapshot = await getDocs(q);
+      const fetchedOrders: Order[] = [];
+      
+      querySnapshot.forEach((doc) => {
+        fetchedOrders.push({ orderId: doc.id, ...doc.data() } as Order);
+      });
+
+      // Ordenamos en el cliente para evitar errores de índices faltantes en Firebase
+      const sortedOrders = fetchedOrders.sort((a, b) => b.createdAt - a.createdAt);
+      setOrders(sortedOrders);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      setError(true);
+      toast({ title: "Error", description: "No se pudieron cargar tus pedidos.", variant: "destructive"});
+    } finally {
+      setLoadingOrders(false);
+    }
+  }, [user, toast]);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login?redirect=/profile/orders');
       return;
     }
 
-    const fetchOrders = async () => {
-      if (user) {
-        setLoadingOrders(true);
-        setError(false);
-        try {
-          const ordersRef = collection(db, "orders");
-          // Quitamos el orderBy aquí para evitar el error de índice faltante en Firebase
-          const q = query(ordersRef, where("userId", "==", user.uid));
-          const querySnapshot = await getDocs(q);
-          const fetchedOrders: Order[] = [];
-          
-          querySnapshot.forEach((doc) => {
-            fetchedOrders.push({ orderId: doc.id, ...doc.data() } as Order);
-          });
-
-          // Ordenamos en el cliente para asegurar que aparezcan las más recientes arriba
-          const sortedOrders = fetchedOrders.sort((a, b) => b.createdAt - a.createdAt);
-          setOrders(sortedOrders);
-        } catch (err) {
-          console.error("Error fetching orders:", err);
-          setError(true);
-          toast({ title: "Error", description: "No se pudieron cargar tus pedidos.", variant: "destructive"});
-        } finally {
-          setLoadingOrders(false);
-        }
-      }
-    };
-
     if (!authLoading && user) {
       fetchOrders();
     }
-  }, [user, authLoading, router, toast]);
+  }, [user, authLoading, router, fetchOrders]);
 
   if (authLoading || loadingOrders) {
     return (
@@ -77,6 +76,9 @@ export default function OrderHistoryPage() {
     <div className="container mx-auto py-12 px-4 max-w-5xl">
       <div className="flex items-center justify-between mb-10">
         <h1 className="text-4xl font-lora font-bold text-primary">{t('orders.title')}</h1>
+        <Button variant="outline" size="sm" onClick={fetchOrders} className="gap-2">
+          <RefreshCw className="h-4 w-4" /> Refrescar
+        </Button>
       </div>
 
       {error && (
@@ -127,7 +129,7 @@ export default function OrderHistoryPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground uppercase font-bold">{t('orders.items')}</p>
-                    <p className="text-sm">{order.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</p>
+                    <p className="text-sm truncate">{order.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</p>
                   </div>
                   <div className="md:text-right">
                     <p className="text-xs text-muted-foreground uppercase font-bold">{t('orders.total')}</p>
