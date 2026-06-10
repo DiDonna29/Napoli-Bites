@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { UserPlus, Home, Copy, AlertTriangle } from "lucide-react";
+import { UserPlus, Home, Copy, AlertTriangle, RefreshCcw, Info } from "lucide-react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,7 +16,7 @@ import { auth, db } from "@/lib/firebase/config";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import type { UserProfile } from "@/types";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const registerSchema = z.object({
@@ -31,11 +31,12 @@ const registerSchema = z.object({
 
 type RegisterFormInputs = z.infer<typeof registerSchema>;
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterFormInputs>({
     resolver: zodResolver(registerSchema),
@@ -76,6 +77,7 @@ export default function RegisterPage() {
     setUnauthorizedDomain(null);
     const hostname = typeof window !== "undefined" ? window.location.hostname : "";
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
     
     try {
       const result = await signInWithPopup(auth, provider);
@@ -101,28 +103,20 @@ export default function RegisterPage() {
       
       router.push(redirectUrl);
     } catch (error: any) {
-      // Forzamos el aviso de dominio si falla el popup de Google
+      setShowTroubleshooting(true);
       setUnauthorizedDomain(hostname);
       
-      if (error.code === 'auth/popup-closed-by-user') {
-        toast({
-          title: "Ventana Cerrada",
-          description: "La ventana se cerró antes de completar. Asegúrate de añadir el dominio en Firebase.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error de Google",
-          description: error.message || "No se pudo registrar con Google.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error de Google",
+        description: "Revisa las instrucciones para Workstations.",
+        variant: "destructive",
+      });
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Copiado", description: "Dominio copiado al portapapeles." });
+    toast({ title: "Copiado", description: "Dominio copiado." });
   };
 
   return (
@@ -133,24 +127,30 @@ export default function RegisterPage() {
           <CardDescription>Únete a Napoli Bites para una experiencia auténtica.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {unauthorizedDomain && (
-            <Alert variant="destructive" className="bg-destructive/10 border-destructive border-2 animate-in fade-in zoom-in duration-300">
-              <AlertTriangle className="h-5 w-5" />
-              <AlertTitle className="font-bold text-base">Error con Google</AlertTitle>
-              <AlertDescription className="space-y-4">
-                <p className="text-sm">Para que Google funcione en esta ventana, debes añadir este dominio en tu Consola de Firebase:</p>
-                <div className="flex items-center gap-2 bg-background p-3 rounded-md border border-destructive/30 shadow-inner">
-                  <code className="text-xs break-all flex-grow font-mono font-bold text-destructive">{unauthorizedDomain}</code>
-                  <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={() => copyToClipboard(unauthorizedDomain)}>
-                    <Copy className="h-4 w-4" />
+          {showTroubleshooting && (
+            <Alert variant="destructive" className="bg-destructive/5 border-destructive/20 animate-in fade-in duration-500">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle className="text-sm font-bold">Instrucciones de Red</AlertTitle>
+              <AlertDescription className="text-[10px] space-y-2 mt-2">
+                <p>1. <strong>Habilitar Cookies:</strong> Ve a Configuración &gt; Privacidad y permite cookies de terceros.</p>
+                <p>2. <strong>Dominio Firebase:</strong> Verifica que este dominio esté autorizado.</p>
+                <div className="flex items-center gap-2 bg-background p-2 rounded border">
+                  <code className="truncate flex-grow">{unauthorizedDomain || window.location.hostname}</code>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyToClipboard(unauthorizedDomain || window.location.hostname)}>
+                    <Copy className="h-3 w-3" />
                   </Button>
-                </div>
-                <div className="text-[11px] space-y-1 bg-white/50 p-2 rounded border border-destructive/10">
-                  <p><strong>Configuración:</strong> Authentication &gt; Settings &gt; Authorized domains.</p>
                 </div>
               </AlertDescription>
             </Alert>
           )}
+
+          <div className="bg-amber-50 dark:bg-amber-950/30 p-3 rounded-md border border-amber-200 dark:border-amber-800 flex gap-3">
+             <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+             <div className="text-[10px] text-amber-700 dark:text-amber-300">
+                <p className="font-bold mb-1">¿Error 401 en incógnito?</p>
+                <p>Debes loguearte primero en <strong>console.cloud.google.com</strong> en esta misma ventana antes de abrir la app.</p>
+             </div>
+          </div>
 
           <form onSubmit={handleSubmit(handleEmailRegister)} className="space-y-4">
             <div className="space-y-2">
@@ -199,13 +199,24 @@ export default function RegisterPage() {
               Inicia Sesión
             </Link>
           </div>
-           <Button variant="link" size="sm" asChild className="text-muted-foreground hover:text-primary">
-            <Link href="/">
-              <Home className="mr-1 h-4 w-4" /> Volver al Inicio
-            </Link>
-          </Button>
+           <div className="flex gap-2">
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-primary">
+              <Link href="/"><Home className="mr-1 h-4 w-4" /> Inicio</Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => window.location.reload()} className="text-muted-foreground">
+              <RefreshCcw className="mr-1 h-3 w-3" /> Refrescar
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Cargando...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

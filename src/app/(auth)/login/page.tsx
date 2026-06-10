@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { LogIn, Home, Copy, AlertTriangle, RefreshCcw } from "lucide-react";
+import { LogIn, Home, Copy, AlertTriangle, RefreshCcw, Info } from "lucide-react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,7 +16,7 @@ import { auth, db } from "@/lib/firebase/config";
 import { useToast } from "@/hooks/use-toast";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import type { UserProfile } from "@/types";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const loginSchema = z.object({
@@ -31,6 +31,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const [unauthorizedDomain, setUnauthorizedDomain] = useState<string | null>(null);
+  const [showTroubleshooting, setShowTroubleshooting] = useState(false);
   
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormInputs>({
     resolver: zodResolver(loginSchema),
@@ -58,8 +59,10 @@ function LoginForm() {
     const hostname = typeof window !== "undefined" ? window.location.hostname : "";
     const provider = new GoogleAuthProvider();
     
+    // Configuración para forzar la selección de cuenta y mitigar bloqueos de pop-ups
+    provider.setCustomParameters({ prompt: 'select_account' });
+    
     try {
-      // Intentamos el login
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
@@ -82,13 +85,13 @@ function LoginForm() {
       router.push(redirectUrl);
     } catch (error: any) {
       console.error("Login Error Code:", error.code);
+      setShowTroubleshooting(true);
       
-      // Si el error es popup-closed, es muy probable que el dominio siga bloqueado o necesite refrescar
       if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/unauthorized-domain') {
         setUnauthorizedDomain(hostname);
         toast({
-          title: "Error de Autorización",
-          description: "Si ya agregaste el dominio en Firebase, por favor refresca la página o revisa tu conexión.",
+          title: "Error de Conexión / Dominio",
+          description: "Revisa las instrucciones en pantalla.",
           variant: "destructive",
         });
       } else {
@@ -114,31 +117,31 @@ function LoginForm() {
           <CardDescription>Inicia sesión en Napoli Bites.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {unauthorizedDomain && (
-            <Alert variant="destructive" className="bg-destructive/10 border-destructive border-2 animate-in fade-in zoom-in duration-300">
-              <AlertTriangle className="h-5 w-5" />
-              <AlertTitle className="font-bold text-base">¿Sigues teniendo problemas?</AlertTitle>
-              <AlertDescription className="space-y-4">
-                <p className="text-sm">Si ya agregaste el dominio y sigue fallando:</p>
-                <div className="text-[11px] space-y-2 bg-white/50 p-2 rounded border border-destructive/10">
-                  <p><strong>1. Espera 1 minuto:</strong> Los cambios en Google pueden tardar un poco en activarse.</p>
-                  <p><strong>2. Refresca la app:</strong> Usa el botón de abajo para recargar la aplicación.</p>
-                  <p><strong>3. Incógnito:</strong> Prueba abrir esta ventana en modo incógnito.</p>
-                </div>
-                <div className="flex flex-col gap-2">
-                   <div className="flex items-center gap-2 bg-background p-2 rounded-md border border-destructive/30">
-                    <code className="text-[10px] break-all flex-grow font-mono font-bold text-destructive">{unauthorizedDomain}</code>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copyToClipboard(unauthorizedDomain)}>
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => window.location.reload()}>
-                    <RefreshCcw className="mr-2 h-3 w-3" /> Refrescar Página
+          {showTroubleshooting && (
+            <Alert variant="destructive" className="bg-destructive/5 border-destructive/20">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle className="text-sm font-bold">¿Problemas con Google?</AlertTitle>
+              <AlertDescription className="text-[11px] space-y-2 mt-2">
+                <p>1. <strong>Ventana colgada:</strong> Asegúrate de que el dominio esté en Firebase.</p>
+                <p>2. <strong>Cookies:</strong> Tu navegador debe permitir cookies de terceros.</p>
+                <div className="flex items-center gap-2 bg-background p-2 rounded border">
+                  <code className="truncate flex-grow">{unauthorizedDomain || "Copiando..."}</code>
+                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyToClipboard(unauthorizedDomain || window.location.hostname)}>
+                    <Copy className="h-3 w-3" />
                   </Button>
                 </div>
               </AlertDescription>
             </Alert>
           )}
+
+          {/* Tips para Workstation */}
+          <div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-md border border-blue-200 dark:border-blue-800 flex gap-3">
+             <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+             <div className="text-[10px] text-blue-700 dark:text-blue-300">
+                <p className="font-bold mb-1">Nota para Modo Incógnito:</p>
+                <p>Si ves un error 401, primero debes loguearte en <strong>console.cloud.google.com</strong> en esta misma pestaña para que la Workstation te deje pasar.</p>
+             </div>
+          </div>
 
           <form onSubmit={handleSubmit(handleEmailLogin)} className="space-y-4">
             <div className="space-y-2">
@@ -178,9 +181,14 @@ function LoginForm() {
             ¿No tienes cuenta?{' '}
             <Link href="/register" className="text-primary hover:underline font-bold">Regístrate</Link>
           </div>
-          <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-primary">
-            <Link href="/"><Home className="mr-1 h-4 w-4" /> Volver al Inicio</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-primary">
+              <Link href="/"><Home className="mr-1 h-4 w-4" /> Inicio</Link>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => window.location.reload()} className="text-muted-foreground">
+              <RefreshCcw className="mr-1 h-3 w-3" /> Refrescar
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>
