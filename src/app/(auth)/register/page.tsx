@@ -11,7 +11,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, updateProfile } from "firebase/auth";
 import { auth, db } from "@/lib/firebase/config";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -108,10 +108,15 @@ function RegisterForm() {
       setUnauthorizedDomain(hostname);
       
       toast({
-        title: "Error de Google",
-        description: "Revisa las instrucciones de red para Workstations.",
-        variant: "destructive",
+        title: "Problema de Ventana",
+        description: "Intentando redirección para evitar bloqueos...",
       });
+
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch (redirectError) {
+        console.error("Redirect failed:", redirectError);
+      }
     }
   };
 
@@ -133,14 +138,14 @@ function RegisterForm() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle className="text-sm font-bold">Guía de Configuración</AlertTitle>
               <AlertDescription className="text-[10px] space-y-2 mt-2">
-                <p>1. <strong>Dominio Firebase:</strong> Verifica que este dominio esté autorizado:</p>
+                <p>1. <strong>Autorizar Dominio:</strong> Verifica que este dominio exacto esté en Firebase (no soporta wildcards *):</p>
                 <div className="flex items-center gap-2 bg-background p-2 rounded border my-1">
-                  <code className="truncate flex-grow">{unauthorizedDomain || window.location.hostname}</code>
+                  <code className="truncate flex-grow text-[9px]">{unauthorizedDomain || window.location.hostname}</code>
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyToClipboard(unauthorizedDomain || window.location.hostname)}>
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
-                <p>2. <strong>Modo Incógnito:</strong> Si ves un error 401, logueate primero en <Link href="https://console.cloud.google.com" target="_blank" className="underline font-bold inline-flex items-center gap-1">Cloud Console <ExternalLink className="h-2 w-2"/></Link>.</p>
+                <p>2. <strong>Cookies:</strong> Asegúrate de permitir <strong>"Cookies de terceros"</strong> en la configuración de privacidad del navegador.</p>
               </AlertDescription>
             </Alert>
           )}
@@ -148,8 +153,8 @@ function RegisterForm() {
           <div className="bg-amber-50 dark:bg-amber-950/40 p-3 rounded-md border border-amber-200 dark:border-amber-800 flex gap-3">
              <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
              <div className="text-[10px] text-amber-700 dark:text-amber-300 space-y-1">
-                <p className="font-bold">Nota para Desarrolladores:</p>
-                <p>Si el pop-up de Google se queda colgado, asegúrate de permitir <strong>"Cookies de terceros"</strong> en tu navegador.</p>
+                <p className="font-bold">Nota de Seguridad:</p>
+                <p>Si usas <strong>Incógnito</strong>, entra primero a <Link href="https://console.cloud.google.com" target="_blank" className="underline font-bold">Cloud Console</Link> en otra pestaña para desbloquear el error 401.</p>
              </div>
           </div>
 
