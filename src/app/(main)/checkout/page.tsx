@@ -124,7 +124,6 @@ function CheckoutPageContent() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Columna Izquierda: Revisión de Productos */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="shadow-md">
             <CardHeader>
@@ -225,7 +224,6 @@ function CheckoutPageContent() {
           </Card>
         </div>
 
-        {/* Columna Derecha: Resumen y Acción Final */}
         <div className="lg:col-span-1">
           <Card className="shadow-lg sticky top-24 border-primary/20">
             <CardHeader>

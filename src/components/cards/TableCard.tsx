@@ -4,7 +4,7 @@
 import type { Table } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Armchair, CheckCircle2, XCircle, Clock, Users } from 'lucide-react';
+import { Armchair, CheckCircle, CircleOff, Clock, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -43,12 +43,12 @@ export function TableCard({ table }: TableCardProps) {
         <div className="flex items-center space-x-2 py-2 px-3 rounded-full bg-white/50 dark:bg-black/20 w-fit border">
           {isAvailable ? (
             <>
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-green-600" />
               <span className="text-xs font-bold text-green-700 dark:text-green-400 uppercase tracking-wider">Disponible</span>
             </>
           ) : isOccupied ? (
             <>
-              <XCircle className="h-4 w-4 text-red-600" />
+              <CircleOff className="h-4 w-4 text-red-600" />
               <span className="text-xs font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Ocupada</span>
             </>
           ) : (
